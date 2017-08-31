@@ -14,14 +14,12 @@ public class AuthService {
     public static final String CONFIG_HEADER_NAME = "remote.api.header.name";
     public static final String CONFIG_HEADER_VALUE = "remote.api.header.value";
 
-    protected final EventServerVerticle verticle;
     private final String authEndpoint;
     private final String headerName;
     private final String headerValue;
     private final HttpClient client;
 
     public AuthService(EventServerVerticle verticle) {
-        this.verticle = verticle;
         String host = Config.getString(CONFIG_REMOTE_HOST, "test-dot-playinitium.appspot.com");
         int port = Config.getInt(CONFIG_REMOTE_PORT, 443);
         boolean ssl = Config.getBoolean(CONFIG_REMOTE_SSL, true);

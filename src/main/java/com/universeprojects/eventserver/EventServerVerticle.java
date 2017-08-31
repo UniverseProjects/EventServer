@@ -62,4 +62,12 @@ public class EventServerVerticle extends AbstractVerticle {
 
         server.requestHandler(router::accept).listen(6969, "0.0.0.0");
     }
+
+    public String generateChannelAddress(String channel) {
+        return "channel."+channel;
+    }
+
+    public String generateUserUpdateAddress(User user) {
+        return "user.update."+user.userId;
+    }
 }

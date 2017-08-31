@@ -5,10 +5,10 @@ import io.vertx.core.json.JsonObject;
 import java.util.List;
 
 public class ChatMessage {
-    List<String> targetUserIds;
-    String senderId;
-    String senderDisplayName;
-    String channel;
-    String text;
-    JsonObject additionalData;
+    public List<String> targetUserIds;
+    public String senderId;
+    public String senderDisplayName;
+    public String channel;
+    public String text;
+    public JsonObject additionalData;
 }

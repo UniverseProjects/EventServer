@@ -53,10 +53,22 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         User user = sessionUser;
         if(user == null) {
             user = new User(authResponse.userId);
+            setupUser(user);
         }
         setupSocket(socket, user);
         updateChannels(user, authResponse.channels);
         sendOldMessages(socket, user);
+    }
+
+    private void setupUser(User user) {
+        final String address = verticle.generateUserUpdateAddress(user);
+        verticle.eventBus.<JsonArray>consumer(address, (message) -> {
+            Set<String> channels = new LinkedHashSet<>();
+            for(Object channelObj : message.body()) {
+                channels.add((String) channelObj);
+            }
+            updateChannels(user, channels);
+        });
     }
 
     private void updateChannels(User user, Set<String> channels) {
@@ -84,7 +96,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private MessageConsumer<ChatMessage> registerChannel(String channel, User user) {
-        final String address = generateChannelAddress(channel);
+        final String address = verticle.generateChannelAddress(channel);
         return verticle.eventBus.consumer(address, (message) -> {
             final ChatEnvelope envelope = ChatEnvelope.forMessage(message.body());
             final JsonObject messageJson = envelope.toJson();
@@ -129,11 +141,6 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         json.writeToBuffer(buffer);
         socket.write(buffer);
     }
-
-    private String generateChannelAddress(String channel) {
-        return "channel."+channel;
-    }
-
 
     private void onAuthError(SockJSSocket socket, String message) {
         Buffer buffer = Buffer.buffer();
