@@ -4,32 +4,25 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
-repositories {
-  mavenCentral()
-//  maven {
-//    url "https://oss.sonatype.org/content/repositories/iovertx-3295"
-//  }
-}
-
 version = '3.3.3'
+//noinspection GroovyUnusedAssignment
 sourceCompatibility = '1.8'
-mainClassName = 'io.vertx.core.Launcher'
+//noinspection GroovyUnusedAssignment
+mainClassName = 'com.universeprojects.eventserver.Main'
 
 dependencies {
   compile "io.vertx:vertx-core:$version"
   compile "io.vertx:vertx-web:$version"
+  compile "io.vertx:vertx-hazelcast:$version"
 }
 
 shadowJar {
-  classifier = 'fat'
-  //noinspection GroovyAssignabilityCheck
-  manifest {
-    //noinspection GroovyAssignabilityCheck
-    attributes 'Main-Verticle': 'com.universeprojects.eventserver.EventServerVerticle'
-  }
-  mergeServiceFiles {
-    include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
-  }
+  baseName = 'event-server'
+  version = null
+  //noinspection GrReassignedInClosureLocalVar
+  classifier = null
+  //noinspection GrUnresolvedAccess
+  zip64 true
 }
 
 task wrapper(type: Wrapper) {
