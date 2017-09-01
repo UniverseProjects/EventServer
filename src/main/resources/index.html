@@ -1,0 +1,50 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <title>EventServer</title>
+
+
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+    <![endif]-->
+    <script src="https://cdn.jsdelivr.net/sockjs/1/sockjs.min.js"></script>
+    <script src="https://rawgit.com/vert-x3/vertx-bus-bower/master/vertx-eventbus.js"></script>
+</head>
+
+<body>
+<div>
+    <button onclick="openConnection()">Open Connection</button>
+    <button onclick="sendUpdate()">Update</button>
+</div>
+<div>
+    <label for="authToken">Auth-Token</label>
+    <input type="text" id="authToken"/>
+</div>
+
+<script>
+    var socket;
+    window.openConnection = function () {
+        var url = "socket?token=token123";
+        var options = {};
+        var socket = new SockJS(url, null, options);
+        socket.onopen = function(event) {
+            console.log('open', JSON.stringify(event));
+        };
+        socket.onclose = function (event) {
+            console.log('close', JSON.stringify(event));
+        };
+        socket.onerror = function (event) {
+            console.log('error', JSON.stringify(event));
+        };
+        socket.onmessage = function (event) {
+            console.log('message', event.data);
+        };
+    };
+
+    window.sendUpdate = function () {
+        socket.send("update")
+    }
+</script>
+</body>
+</html>

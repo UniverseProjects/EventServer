@@ -13,12 +13,18 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 
-public class EventServerVerticle extends AbstractVerticle {
-    public static final String CONFIG_MODE = "server.mode";
-    public static final String CONFIG_CORS_ORIGINS = "corsOrigins";
+import java.util.logging.Logger;
 
-    private enum ServerMode {
-        PROD, TEST
+public class EventServerVerticle extends AbstractVerticle {
+
+    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+
+    public static final String CONFIG_MODE = "server.mode";
+    public static final String CONFIG_PORT = "server.port";
+    public static final String CONFIG_CORS_ORIGINS = "cors.origins";
+
+    public enum ServerMode {
+        PROD, TEST, TEST_CLIENT
     }
     public EventBus eventBus;
     public SockJSHandler sockJSHandler;
@@ -31,6 +37,7 @@ public class EventServerVerticle extends AbstractVerticle {
     @Override
     public void start() {
         String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
+        int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
@@ -40,7 +47,7 @@ public class EventServerVerticle extends AbstractVerticle {
         router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)).setNagHttps(false));
 
 
-        if(serverMode == ServerMode.TEST) {
+        if(serverMode == ServerMode.TEST || serverMode == ServerMode.TEST_CLIENT) {
             Route indexRoute = router.route("/");
             indexRoute.handler(routingContext ->
                     routingContext.response().sendFile("index.html")
@@ -67,7 +74,8 @@ public class EventServerVerticle extends AbstractVerticle {
         router.route("/send").handler(new IncomingMessageHandler(this));
         router.route("/updateUsers").handler(new UpdateUsersHandler(this));
 
-        server.requestHandler(router::accept).listen(6969, "0.0.0.0");
+        server.requestHandler(router::accept).listen(port, "0.0.0.0");
+        log.info("Server started up at http://localhost:"+port);
     }
 
     public String generateChannelAddress(String channel) {

@@ -36,6 +36,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     public void handle(SockJSSocket socket) {
         final Session session = socket.webSession();
         final User user = verticle.sharedDataService.getSessionToUserMap().get(session.id());
+        String uri = socket.uri();
         final String authHeader = socket.headers().get(HttpHeaders.AUTHORIZATION);
         final String token;
         if (authHeader != null && authHeader.startsWith(AUTH_BEARER)) {
@@ -43,13 +44,21 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else {
             token = TOKEN_ANONYMOUS;
         }
-        executeAuthentication(socket, user, token, false);
+        final Handler<User> onAuthSuccess = (newUser) -> setupSocket(socket, newUser, token);
+        if(verticle.serverMode == EventServerVerticle.ServerMode.TEST_CLIENT) {
+            AuthResponse authResponse = new AuthResponse(true, "test");
+            authResponse.channels.add("public");
+            authResponse.channels.add("group.test");
+            onAuthSuccess(socket, user, authResponse, onAuthSuccess);
+        } else {
+            executeAuthentication(socket, user, token, onAuthSuccess);
+        }
     }
 
-    private void executeAuthentication(SockJSSocket socket, User user, String token, boolean update) {
+    private void executeAuthentication(SockJSSocket socket, User user, String token, Handler<User> onSuccess) {
         verticle.authService.authenticate(token, (authResponse) -> {
             if (authResponse.success) {
-                onAuthSuccess(socket, user, token, authResponse, update);
+                onAuthSuccess(socket, user, authResponse, onSuccess);
             } else {
                 onAuthError(socket, "Authentication failed");
             }
@@ -59,7 +68,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         });
     }
 
-    private void onAuthSuccess(final SockJSSocket socket, final User sessionUser, final String token, final AuthResponse authResponse, boolean update) {
+    private void onAuthSuccess(final SockJSSocket socket, final User sessionUser, final AuthResponse authResponse, Handler<User> onSuccess) {
         final User user;
         if (sessionUser == null) {
             user = new User(authResponse.userId);
@@ -67,15 +76,15 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else {
             user = sessionUser;
         }
-        if (!update) {
-            setupSocket(socket, user, token);
-        }
         updateChannels(user, authResponse.channels, (added) ->
                         findOldMessages(user, added, (channel, messages) -> {
                             ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                             send(socket, envelope);
                         })
         );
+        if(onSuccess != null) {
+            onSuccess.handle(user);
+        }
     }
 
     private void setupUser(final User user) {
@@ -215,7 +224,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         localSocketMap.put(user.userId, socketWritersJson);
         socket.handler((buffer) -> {
             if (buffer.length() == SOCKET_MESSAGE_UPDATE.length() && SOCKET_MESSAGE_UPDATE.equals(buffer.toString())) {
-                executeAuthentication(socket, user, token, true);
+                executeAuthentication(socket, user, token, null);
             } else {
                 Buffer loggedBuffer = buffer;
                 if (loggedBuffer.length() > 100) {

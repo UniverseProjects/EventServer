@@ -4,6 +4,10 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
+repositories {
+  mavenCentral()
+}
+
 version = '3.3.3'
 //noinspection GroovyUnusedAssignment
 sourceCompatibility = '1.8'
@@ -14,6 +18,10 @@ dependencies {
   compile "io.vertx:vertx-core:$version"
   compile "io.vertx:vertx-web:$version"
   compile "io.vertx:vertx-hazelcast:$version"
+}
+
+run {
+  systemProperties System.getProperties()
 }
 
 shadowJar {
