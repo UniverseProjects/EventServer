@@ -12,4 +12,8 @@ public class ChatMessage {
     public String channel;
     public String text;
     public JsonObject additionalData;
+
+    public String toString() {
+        return ChatMessageCodec.INSTANCE.toJson(this).encode();
+    }
 }

@@ -61,4 +61,8 @@ public class ChatEnvelope {
         List<ChatMessage> messages = this.messages != null ? new ArrayList<>(this.messages) : null;
         return new ChatEnvelope(messages, error);
     }
+
+    public String toString() {
+        return toJson().encode();
+    }
 }

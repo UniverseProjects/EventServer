@@ -27,7 +27,7 @@
     <label for="messages">Messages:</label>
 </div>
 <div>
-    <textarea id="messages" rows="30" cols="100" readonly="readonly"></textarea>
+    <textarea id="messages" style="width: 100%; height: 80%;" readonly="readonly"></textarea>
 </div>
 
 <script>
@@ -39,8 +39,9 @@
         var socket = new SockJS(url, null, options);
         var printMessage = function (text) {
             console.log(text);
+            var timeStamp = new Date().toISOString();
             var textArea = document.getElementById("messages");
-            textArea.value = text + "\n" + textArea.value;
+            textArea.value = timeStamp+" "+text + "\n" + textArea.value;
         };
         socket.onopen = function(event) {
             printMessage("connected: "+JSON.stringify(event));
