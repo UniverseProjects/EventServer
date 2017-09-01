@@ -141,8 +141,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         return verticle.eventBus.consumer(address, (message) -> {
             final ChatEnvelope envelope = ChatEnvelope.forMessage(message.body());
             final JsonObject messageJson = envelope.toJson();
-            final Buffer buffer = Buffer.buffer();
-            messageJson.writeToBuffer(buffer);
+            final Buffer buffer = Buffer.buffer(messageJson.encode());
             verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
                 for (String writerId : writerIds) {
                     verticle.eventBus.send(writerId, buffer);
@@ -186,16 +185,14 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private void send(SockJSSocket socket, ChatEnvelope envelope) {
-        Buffer buffer = Buffer.buffer();
         JsonObject json = envelope.toJson();
-        json.writeToBuffer(buffer);
+        Buffer buffer = Buffer.buffer(json.encode());
         socket.write(buffer);
     }
 
     private void onAuthError(SockJSSocket socket, String message) {
-        Buffer buffer = Buffer.buffer();
         ChatEnvelope envelope = ChatEnvelope.forError(message);
-        envelope.toJson().writeToBuffer(buffer);
+        Buffer buffer = Buffer.buffer(envelope.toJson().encode());
         socket.write(buffer);
         socket.close();
     }
