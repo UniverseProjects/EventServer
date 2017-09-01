@@ -16,10 +16,8 @@ public class ApiAuthHandler implements Handler<RoutingContext> {
     private final String headerName;
     private final String headerValue;
     private final CharSequence headerNameChar;
-    private final EventServerVerticle verticle;
 
-    public ApiAuthHandler(EventServerVerticle verticle) {
-        this.verticle = verticle;
+    public ApiAuthHandler() {
         this.headerName = Config.getString(CONFIG_HEADER_NAME, null);
         this.headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
         this.headerNameChar = headerName != null ? HttpHeaders.createOptimized(headerName) : null;

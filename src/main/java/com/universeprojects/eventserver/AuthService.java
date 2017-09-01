@@ -41,8 +41,7 @@ public class AuthService {
         }
         request.handler((response) ->
                 response.bodyHandler((buffer) -> {
-                    final JsonObject json = new JsonObject();
-                    json.readFromBuffer(0, buffer);
+                    final JsonObject json = buffer.toJsonObject();
                     final AuthResponse authResponse = AuthResponse.fromJson(json);
                     handler.handle(authResponse);
                 })

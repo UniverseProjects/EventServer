@@ -68,8 +68,9 @@ public class EventServerVerticle extends AbstractVerticle {
         Route socketRoute = router.route("/socket/*");
         socketRoute.handler(SockJSHandler.create(vertx, sockJSHandlerOptions).socketHandler(sockJSSocketHandler));
 
-        router.route("/send").handler(new ApiAuthHandler(this));
-        router.route("/updateUsers").handler(new ApiAuthHandler(this));
+        final ApiAuthHandler apiAuthHandler = new ApiAuthHandler();
+        router.route("/send").handler(apiAuthHandler);
+        router.route("/updateUsers").handler(apiAuthHandler);
 
         router.route("/send").handler(new IncomingMessageHandler(this));
         router.route("/updateUsers").handler(new UpdateUsersHandler(this));

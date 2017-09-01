@@ -34,18 +34,18 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         }
 
         context.request().bodyHandler((buffer) -> {
-            final JsonObject json = new JsonObject();
-            json.readFromBuffer(0, buffer);
+            final JsonObject json = buffer.toJsonObject();
             final JsonArray messages = json.getJsonArray("messages");
             final Map<String, List<ChatMessage>> userMessages = new LinkedHashMap<>();
             final Map<String, List<ChatMessage>> channelMessages = new LinkedHashMap<>();
-            categorizeMessages(messages, userMessages, channelMessages);
+            parseAndCategorizeMessages(messages, userMessages, channelMessages);
             processChannelMessages(userMessages);
             processUserMessages(userMessages);
+            context.response().end();
         });
     }
 
-    private void categorizeMessages(JsonArray messages, Map<String, List<ChatMessage>> userMessages, Map<String, List<ChatMessage>> channelMessages) {
+    private void parseAndCategorizeMessages(JsonArray messages, Map<String, List<ChatMessage>> userMessages, Map<String, List<ChatMessage>> channelMessages) {
         for(Object messageObj : messages) {
             JsonObject messageJson = (JsonObject) messageObj;
             ChatMessage chatMessage = ChatMessageCodec.INSTANCE.fromJson(messageJson);

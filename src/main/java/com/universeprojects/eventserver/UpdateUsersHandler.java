@@ -25,8 +25,7 @@ public class UpdateUsersHandler implements Handler<RoutingContext> {
         }
 
         context.request().bodyHandler((buffer) -> {
-            JsonObject json = new JsonObject();
-            json.readFromBuffer(0, buffer);
+            JsonObject json = buffer.toJsonObject();
             JsonObject userChannels = json.getJsonObject("userChannels");
             for(Map.Entry<String, Object> entry : userChannels.getMap().entrySet()) {
                 String userId = entry.getKey();
@@ -34,6 +33,7 @@ public class UpdateUsersHandler implements Handler<RoutingContext> {
                 String address = verticle.generateUserUpdateAddress(userId);
                 verticle.eventBus.publish(address, channels);
             }
+            context.response().end();
         });
     }
 }
