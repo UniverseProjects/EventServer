@@ -39,7 +39,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
             final Map<String, List<ChatMessage>> userMessages = new LinkedHashMap<>();
             final Map<String, List<ChatMessage>> channelMessages = new LinkedHashMap<>();
             parseAndCategorizeMessages(messages, userMessages, channelMessages);
-            processChannelMessages(userMessages);
+            processChannelMessages(channelMessages);
             processUserMessages(userMessages);
             context.response().end();
         });
@@ -61,8 +61,8 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         }
     }
 
-    private void processChannelMessages(Map<String, List<ChatMessage>> userMessages) {
-        for(Map.Entry<String, List<ChatMessage>> entry : userMessages.entrySet()) {
+    private void processChannelMessages(Map<String, List<ChatMessage>> messageMap) {
+        for(Map.Entry<String, List<ChatMessage>> entry : messageMap.entrySet()) {
             final String channel = entry.getKey();
             final List<ChatMessage> messages = entry.getValue();
             String address = verticle.generateChannelAddress(channel);
@@ -96,8 +96,8 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         }
     }
 
-    private void processUserMessages(Map<String, List<ChatMessage>> userMessages) {
-        for(Map.Entry<String, List<ChatMessage>> entry : userMessages.entrySet()) {
+    private void processUserMessages(Map<String, List<ChatMessage>> messageMap) {
+        for(Map.Entry<String, List<ChatMessage>> entry : messageMap.entrySet()) {
             final String userId = entry.getKey();
             List<ChatMessage> msgs = entry.getValue();
             verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
