@@ -106,6 +106,36 @@ paths:
           description: successful operation
       security:
         - api_auth: []
+  /slack:
+    post:
+      tags:
+        - message
+      summary: Slack outgoing webhook endpoint
+      operationId: slack
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - in: formData
+          required: true
+          name: token
+          type: string
+        - in: formData
+          required: true
+          name: user_name
+          type: string
+        - in: formData
+          required: true
+          name: channel_name
+          type: string
+        - in: formData
+          required: true
+          name: text
+          type: string
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Invalid token
 securityDefinitions:
   api_auth:
     type: apiKey
