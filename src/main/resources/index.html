@@ -16,6 +16,7 @@
 <div>
     <button onclick="openConnection()">Open Connection</button>
     <button onclick="sendUpdate()">Update</button>
+    <button onclick="clear()">Clear</button>
 </div>
 <div>
     <label for="authToken">Auth-Token:</label>
@@ -53,13 +54,18 @@
             printMessage("error: "+JSON.stringify(event));
         };
         socket.onmessage = function (event) {
-            printMessage("message: "+JSON.stringify(event.data));
+            printMessage("message: "+JSON.stringify(event));
         };
     };
 
     window.sendUpdate = function () {
         socket.send("update")
-    }
+    };
+
+    window.clear = function () {
+        var textArea = document.getElementById("messages");
+        textArea.value = "";
+    };
 </script>
 </body>
 </html>
