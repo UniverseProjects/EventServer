@@ -50,7 +50,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         }
 
         final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
-                updateChannels(user, channels, (added) -> {
+                updateChannels(newUser, channels, (added) -> {
                     findOldMessages(channels, (channel, messages) -> {
                         ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                         send(socket, envelope);
