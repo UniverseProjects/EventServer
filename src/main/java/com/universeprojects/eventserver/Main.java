@@ -8,6 +8,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Main {
+    public static final String CONFIG_HAZELCAST_GROUP_NAME = "hazelcast.group.name";
+    public static final String CONFIG_HAZELCAST_GROUP_PASSWORD = "hazelcast.group.password";
     private final Logger log = Logger.getGlobal();
     public static void main(String[] args) {
         new Main().run(args);
@@ -17,8 +19,7 @@ public class Main {
     public void run(String[] args) {
         VertxOptions options = createVertxOptions();
         options.setClustered(true);
-        com.hazelcast.config.Config hazelCastConfig = new com.hazelcast.config.Config();
-        //TODO: configure
+        com.hazelcast.config.Config hazelCastConfig = createHazelcastConfig();
         HazelcastClusterManager clusterManager = new HazelcastClusterManager(hazelCastConfig);
         options.setClusterManager(clusterManager);
         Vertx.clusteredVertx(options, (res) -> {
@@ -29,6 +30,19 @@ public class Main {
                 log.log(Level.SEVERE, "Error starting clustered Vertx", res.cause());
             }
         });
+    }
+
+    private com.hazelcast.config.Config createHazelcastConfig() {
+        com.hazelcast.config.Config hazelcastConfig = new com.hazelcast.config.Config();
+        String hazelcastGroupName = Config.getString(CONFIG_HAZELCAST_GROUP_NAME, null);
+        if(hazelcastGroupName != null) {
+            hazelcastConfig.getGroupConfig().setName(hazelcastGroupName);
+        }
+        String hazelcastGroupPassword = Config.getString(CONFIG_HAZELCAST_GROUP_PASSWORD, null);
+        if(hazelcastGroupPassword != null) {
+            hazelcastConfig.getGroupConfig().setPassword(hazelcastGroupPassword);
+        }
+        return hazelcastConfig;
     }
 
     private void deployVerticle(Vertx vertx) {
