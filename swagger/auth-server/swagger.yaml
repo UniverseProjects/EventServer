@@ -1,0 +1,48 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: Event-Server Auth-Server
+basePath: /api/v1
+tags:
+  - name: auth
+schemes:
+  - https
+paths:
+  /chatAuth:
+    get:
+      tags:
+        - auth
+      summary: Authenticate token and get channels
+      operationId: chatAuth
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: token
+          description: Token to auth
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              userId:
+                type: string
+              channels:
+                type: array
+                items:
+                  type: string
+                  example:
+                    - public
+                    - group.grp1
+      security:
+        - api_auth: []
+securityDefinitions:
+  api_auth:
+    type: apiKey
+    name: api_key
+    in: header

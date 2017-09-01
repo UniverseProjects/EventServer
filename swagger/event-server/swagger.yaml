@@ -1,0 +1,113 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: Event-Server
+tags:
+  - name: message
+  - name: user
+schemes:
+  - https
+paths:
+  /socket:
+    get:
+      tags:
+        - message
+      summary: SockJS-endpoint
+      operationId: socket
+      parameters:
+        - name: token
+          in: query
+          type: string
+          description: Chat-Authentication token
+          required: true
+      responses:
+        '200':
+          description: OK
+  /send:
+    post:
+      tags:
+        - message
+      summary: Send messages
+      operationId: sendMessages
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Messages to send
+          required: true
+          schema:
+            type: object
+            properties:
+              messages:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    senderId:
+                      type: string
+                    senderDisplayName:
+                      type: string
+                      example: Mr. Sender
+                    targetUserIds:
+                      type: array
+                      items:
+                        type: string
+                        example:
+                          - user1
+                          - user2
+                    channel:
+                      type: string
+                      example: public
+                    text:
+                      type: string
+                      example: This is the text sent to the users
+                    additionalData:
+                      type: object
+                  required:
+                    - channel
+      responses:
+        '200':
+          description: successful operation
+      security:
+        - api_auth: []
+  /updateUsers:
+    post:
+      tags:
+        - user
+      summary: Send messages
+      operationId: updateUsers
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: User-channels to update
+          required: true
+          schema:
+            type: object
+            properties:
+              userChannels:
+                type: object
+                example:
+                  user1:
+                    - public
+                    - group.1
+                  user2:
+                    - public
+                    - group.2
+                additionalProperties:
+                  type: array
+                  description: Channels
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: successful operation
+      security:
+        - api_auth: []
+securityDefinitions:
+  api_auth:
+    type: apiKey
+    name: api_key
+    in: header

@@ -20,11 +20,11 @@ public class AuthService {
     private final HttpClient client;
 
     public AuthService(EventServerVerticle verticle) {
-        String host = Config.getString(CONFIG_REMOTE_HOST, "test-dot-playinitium.appspot.com");
+        String host = Config.getString(CONFIG_REMOTE_HOST, "www.universeprojects.com");
         int port = Config.getInt(CONFIG_REMOTE_PORT, 443);
         boolean ssl = Config.getBoolean(CONFIG_REMOTE_SSL, true);
         authEndpoint = Config.getString(CONFIG_AUTH_ENDPOINT, "/api/v1/chatAuth");
-        headerName = Config.getString(CONFIG_HEADER_NAME, null);
+        headerName = Config.getString(CONFIG_HEADER_NAME, "api_key");
         headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
 
         HttpClientOptions options = new HttpClientOptions().
