@@ -39,7 +39,7 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
         final JsonArray targetUserIds = json.getJsonArray("targetUserIds");
         if(targetUserIds != null) {
             //noinspection unchecked
-            chatMessage.targetUserIds = targetUserIds.getList();
+            chatMessage.targetUserIds.addAll(targetUserIds.getList());
         }
 
         chatMessage.channel = json.getString("channel");

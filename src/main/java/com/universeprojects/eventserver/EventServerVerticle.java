@@ -51,6 +51,7 @@ public class EventServerVerticle extends AbstractVerticle {
         sharedDataService = new SharedDataService(vertx.sharedData());
         sockJSHandler = SockJSHandler.create(vertx);
         eventBus.registerDefaultCodec(ChatMessage.class, ChatMessageCodec.INSTANCE);
+        eventBus.registerDefaultCodec(ChatEnvelope.class, ChatEnvelopeCodec.INSTANCE);
 
         SockJSHandlerOptions sockJSHandlerOptions = new SockJSHandlerOptions();
 
@@ -60,6 +61,12 @@ public class EventServerVerticle extends AbstractVerticle {
         Route socketRoute = router.route("/socket/*");
         socketRoute.handler(SockJSHandler.create(vertx, sockJSHandlerOptions).socketHandler(sockJSSocketHandler));
 
+        router.route("/send").handler(new ApiAuthHandler(this));
+        router.route("/updateUsers").handler(new ApiAuthHandler(this));
+
+        router.route("/send").handler(new IncomingMessageHandler(this));
+        router.route("/updateUsers").handler(new UpdateUsersHandler(this));
+
         server.requestHandler(router::accept).listen(6969, "0.0.0.0");
     }
 
@@ -68,6 +75,10 @@ public class EventServerVerticle extends AbstractVerticle {
     }
 
     public String generateUserUpdateAddress(User user) {
-        return "user.update."+user.userId;
+        return generateUserUpdateAddress(user.userId);
+    }
+
+    public String generateUserUpdateAddress(String userId) {
+        return "user.update."+userId;
     }
 }

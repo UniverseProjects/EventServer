@@ -3,6 +3,7 @@ package com.universeprojects.eventserver;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,6 +28,20 @@ public class ChatEnvelope {
         return new ChatEnvelope(null, errorMessage);
     }
 
+    public static ChatEnvelope fromJson(JsonObject json) {
+        String errorMessage = json.getString("error");
+        List<ChatMessage> messages = null;
+        JsonArray messagesJson = json.getJsonArray("messages");
+        if(messagesJson != null) {
+            messages = new ArrayList<>();
+            for(Object messageObj : messagesJson) {
+                ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
+                messages.add(message);
+            }
+        }
+        return new ChatEnvelope(messages, errorMessage);
+    }
+
     public JsonObject toJson() {
         JsonObject json = new JsonObject();
         if(error != null) {
@@ -40,5 +55,10 @@ public class ChatEnvelope {
             json.put("messages", messagesJson);
         }
         return json;
+    }
+
+    public ChatEnvelope copy() {
+        List<ChatMessage> messages = this.messages != null ? new ArrayList<>(this.messages) : null;
+        return new ChatEnvelope(messages, error);
     }
 }

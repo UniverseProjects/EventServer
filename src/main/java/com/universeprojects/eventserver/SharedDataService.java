@@ -6,10 +6,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
-import io.vertx.ext.web.handler.sockjs.SockJSSocket;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class SharedDataService {
@@ -23,18 +20,38 @@ public class SharedDataService {
         return sd.<String, User>getLocalMap("sessionUsers");
     }
 
-    public LocalMap<String, JsonArray> getSocketMap() {
-        return sd.<String, JsonArray>getLocalMap("sockets");
+    public void getGlobalSocketMap(Handler<AsyncResult<AsyncMap<String, JsonArray>>> resultHandler) {
+        sd.getClusterWideMap("sockets.global", resultHandler);
+    }
+
+    public LocalMap<String, JsonArray> getLocalSocketMap() {
+        return sd.getLocalMap("sockets.local");
     }
 
     public void getMessageMap(Handler<AsyncResult<AsyncMap<String, JsonArray>>> resultHandler) {
         sd.getClusterWideMap("messages", resultHandler);
     }
 
-    public List<String> getSocketWriterIdsForUser(User user) {
-        JsonArray json = getSocketMap().get(user.userId);
-        if(json == null) return Collections.emptyList();
-        //noinspection unchecked
-        return json.getList();
+    public void getLocalSocketWriterIdsForUser(User user, Handler<List<String>> resultHandler) {
+        final JsonArray json = getLocalSocketMap().get(user.userId);
+        if(json != null) {
+            //noinspection unchecked
+            resultHandler.handle(json.getList());
+        }
+    }
+
+    public void getGlobalSocketWriterIdsForUser(String userId, Handler<List<String>> resultHandler) {
+        getGlobalSocketMap((mapResult) -> {
+            if (mapResult.succeeded()) {
+                mapResult.result().get(userId, (result) -> {
+                    if (result.succeeded()) {
+                        JsonArray json = result.result();
+                        //noinspection unchecked
+                        List<String> list = json.getList();
+                        resultHandler.handle(list);
+                    }
+                });
+            }
+        });
     }
 }
