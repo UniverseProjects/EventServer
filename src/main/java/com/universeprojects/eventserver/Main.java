@@ -4,7 +4,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class Main {
+    private final Logger log = Logger.getGlobal();
     private static final String CONFIG_CLUSTERED = "clustered";
 
     public static void main(String[] args) {
@@ -26,9 +30,7 @@ public class Main {
                     Vertx vertx = res.result();
                     deployVerticle(vertx);
                 } else {
-                    System.err.println("Error starting clustered Vertx");
-                    //noinspection ThrowableResultOfMethodCallIgnored
-                    res.cause().printStackTrace();
+                    log.log(Level.SEVERE, "Error starting clustered Vertx", res.cause());
                 }
             });
         } else {

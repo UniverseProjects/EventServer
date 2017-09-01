@@ -11,8 +11,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class IncomingMessageHandler implements Handler<RoutingContext> {
+
+    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
 
     public static final int MAX_CHANNEL_HISTORY = 200;
     private final EventServerVerticle verticle;
@@ -85,6 +89,8 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                         }
                         map.put(channel, new JsonArray(list), null);
                     });
+                } else {
+                    log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
                 }
             });
         }

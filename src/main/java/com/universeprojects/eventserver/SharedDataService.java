@@ -8,8 +8,11 @@ import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SharedDataService {
+    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
     private final SharedData sd;
 
     public SharedDataService(SharedData sd) {
@@ -51,6 +54,8 @@ public class SharedDataService {
                         resultHandler.handle(list);
                     }
                 });
+            } else {
+                log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
             }
         });
     }

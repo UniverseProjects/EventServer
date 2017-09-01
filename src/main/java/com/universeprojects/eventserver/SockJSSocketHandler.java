@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class SockJSSocketHandler implements Handler<SockJSSocket> {
@@ -53,7 +54,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 onAuthError(socket, "Authentication failed");
             }
         }, (exception) -> {
-            exception.printStackTrace();
+            log.log(Level.SEVERE, "Error while authenticating", exception);
             onAuthError(socket, "Error while authenticating");
         });
     }
@@ -139,9 +140,9 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private void findOldMessages(User user, Set<String> newChannelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        verticle.sharedDataService.getMessageMap((res) -> {
-            if (res.succeeded()) {
-                final AsyncMap<String, JsonArray> map = res.result();
+        verticle.sharedDataService.getMessageMap((mapResult) -> {
+            if (mapResult.succeeded()) {
+                final AsyncMap<String, JsonArray> map = mapResult.result();
                 final Set<String> channelNames;
                 if (newChannelNames == null) {
                     channelNames = new LinkedHashSet<>();
@@ -152,9 +153,9 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     channelNames = newChannelNames;
                 }
                 for (String channel : channelNames) {
-                    map.get(channel, (mapResult) -> {
-                        if (mapResult.succeeded()) {
-                            final JsonArray jsonArray = mapResult.result();
+                    map.get(channel, (result) -> {
+                        if (result.succeeded()) {
+                            final JsonArray jsonArray = result.result();
                             final List<ChatMessage> messages = new ArrayList<>();
                             jsonArray.forEach((messageObj) -> {
                                 ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
@@ -164,6 +165,8 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                         }
                     });
                 }
+            } else {
+                log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
             }
         });
     }
@@ -199,6 +202,8 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     JsonArray newValue = new JsonArray(new ArrayList<>(set));
                     asyncMap.put(user.userId, newValue, null);
                 });
+            } else {
+                log.log(Level.WARNING, "Error getting global socket-map", mapResult.cause());
             }
         });
         final LocalMap<String, JsonArray> localSocketMap = verticle.sharedDataService.getLocalSocketMap();
@@ -244,6 +249,8 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                         asyncMap.put(user.userId, writers, null);
                     }
                 });
+            } else {
+                log.log(Level.WARNING, "Error getting global socket-map", mapResult.cause());
             }
         });
 
