@@ -16,13 +16,15 @@ import java.util.logging.Logger;
 
 public class IncomingMessageHandler implements Handler<RoutingContext> {
 
+    public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
     private final Logger log = Logger.getLogger(getClass().getCanonicalName());
 
-    public static final int MAX_CHANNEL_HISTORY = 200;
     private final EventServerVerticle verticle;
+    private final int channelHistorySize;
 
     public IncomingMessageHandler(EventServerVerticle verticle) {
         this.verticle = verticle;
+        this.channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, 200);
     }
 
     @Override
@@ -84,8 +86,10 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                         for (ChatMessage message : messages) {
                             list.add(ChatMessageCodec.INSTANCE.toJson(message));
                         }
-                        if (list.size() > MAX_CHANNEL_HISTORY) {
-                            list = list.subList(list.size() - MAX_CHANNEL_HISTORY, list.size());
+                        if (list.size() > channelHistorySize) {
+                            list = new ArrayList<>(
+                                    list.subList(list.size() - channelHistorySize, list.size())
+                            );
                         }
                         map.put(channel, new JsonArray(list), null);
                     });
