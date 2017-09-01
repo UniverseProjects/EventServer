@@ -243,9 +243,10 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         updateChannels(user, channels, (added) ->
                 findOldMessages(added, (channel, messages) -> {
                     ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                    Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
                     verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
                         for (String id : writerIds) {
-                            verticle.eventBus.publish(id, envelope);
+                            verticle.eventBus.publish(id, buffer);
                         }
                     });
                 }));
