@@ -3,6 +3,7 @@ package com.universeprojects.eventserver;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -95,21 +96,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private void setupUser(final User user) {
         final String updateUserAddress = verticle.generateUserUpdateAddress(user);
-        verticle.eventBus.<JsonArray>consumer(updateUserAddress, (message) -> {
-            Set<String> channels = new LinkedHashSet<>();
-            for (Object channelObj : message.body()) {
-                channels.add((String) channelObj);
-            }
-            updateChannels(user, channels, (added) ->
-                    findOldMessages(user, added, (channel, messages) -> {
-                        ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                        verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
-                            for (String id : writerIds) {
-                                verticle.eventBus.publish(id, envelope);
-                            }
-                        });
-                    }));
-        });
+        verticle.eventBus.<JsonArray>consumer(updateUserAddress, (message) -> updateChannelsFromEventBus(user, message));
     }
 
     private void updateChannels(User user, Set<String> channels, Handler<Set<String>> addedChannelsHandler) {
@@ -227,29 +214,49 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         }
         socketWritersJson.add(socket.writeHandlerID());
         localSocketMap.put(user.userId, socketWritersJson);
-        socket.handler((buffer) -> {
-            if (buffer.length() == SOCKET_MESSAGE_UPDATE.length() && SOCKET_MESSAGE_UPDATE.equals(buffer.toString())) {
-                final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
-                        updateChannels(user, channels, (added) -> {
-                            findOldMessages(user, added, (channel, messages) -> {
-                                ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                                send(socket, envelope);
-                            });
-                            setupSocket(socket, newUser, token);
-                        });
-                executeAuthentication(socket, user, token, onAuthSuccess);
-            } else {
-                Buffer loggedBuffer = buffer;
-                if (loggedBuffer.length() > 100) {
-                    loggedBuffer = loggedBuffer.slice(0, 100);
-                }
-                log.severe("Received bad message on socket for user " + user.userId + ": " + loggedBuffer.toString());
-            }
-        });
+        socket.handler((buffer) -> onSocketMessage(socket, user, token, buffer));
         socket.exceptionHandler((throwable) ->
                         log.severe("Socket error for user " + user.userId)
         );
         socket.endHandler((ignored) -> onDisconnect(socket, user));
+    }
+
+    private void onSocketMessage(SockJSSocket socket, User user, String token, Buffer buffer) {
+        if (buffer.length() == SOCKET_MESSAGE_UPDATE.length() && SOCKET_MESSAGE_UPDATE.equals(buffer.toString())) {
+            updateChannelsForSocket(socket, user, token);
+        } else {
+            Buffer loggedBuffer = buffer;
+            if (loggedBuffer.length() > 100) {
+                loggedBuffer = loggedBuffer.slice(0, 100);
+            }
+            log.severe("Received bad message on socket for user " + user.userId + ": " + loggedBuffer.toString());
+        }
+    }
+
+    private void updateChannelsForSocket(SockJSSocket socket, User user, String token) {
+        final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
+                updateChannels(user, channels, (added) ->
+                        findOldMessages(user, added, (channel, messages) -> {
+                            ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                            send(socket, envelope);
+                        }));
+        executeAuthentication(socket, user, token, onAuthSuccess);
+    }
+
+    private void updateChannelsFromEventBus(User user, Message<JsonArray> message) {
+        Set<String> channels = new LinkedHashSet<>();
+        for (Object channelObj : message.body()) {
+            channels.add((String) channelObj);
+        }
+        updateChannels(user, channels, (added) ->
+                findOldMessages(user, added, (channel, messages) -> {
+                    ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                    verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
+                        for (String id : writerIds) {
+                            verticle.eventBus.publish(id, envelope);
+                        }
+                    });
+                }));
     }
 
     private void onDisconnect(SockJSSocket socket, User user) {
