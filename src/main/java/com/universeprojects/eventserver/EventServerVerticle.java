@@ -33,6 +33,7 @@ public class EventServerVerticle extends AbstractVerticle {
     @SuppressWarnings("FieldCanBeLocal")
     public SharedDataService sharedDataService;
     public ServerMode serverMode;
+    public SlackCommunicationService slackCommunicationService;
 
     @Override
     public void start() {
@@ -74,6 +75,10 @@ public class EventServerVerticle extends AbstractVerticle {
 
         router.route("/send").handler(new IncomingMessageHandler(this));
         router.route("/updateUsers").handler(new UpdateUsersHandler(this));
+
+        slackCommunicationService = new SlackCommunicationService(this);
+        slackCommunicationService.activate();
+        slackCommunicationService.setupRoute(router);
 
         server.requestHandler(router::accept).listen(port, "0.0.0.0");
         log.info("Server started up at http://localhost:"+port);

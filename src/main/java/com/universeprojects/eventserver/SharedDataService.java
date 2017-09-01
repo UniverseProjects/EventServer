@@ -5,6 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
+import io.vertx.core.shareddata.Lock;
 import io.vertx.core.shareddata.SharedData;
 
 import java.util.List;
@@ -17,6 +18,10 @@ public class SharedDataService {
 
     public SharedDataService(SharedData sd) {
         this.sd = sd;
+    }
+
+    public void getSlackLock(Handler<AsyncResult<Lock>> handler) {
+        sd.getLockWithTimeout("slack", 5 * 1000, handler);
     }
 
     public LocalMap<String, User> getSessionToUserMap() {
