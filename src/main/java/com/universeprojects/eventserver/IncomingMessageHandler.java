@@ -4,6 +4,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 public class IncomingMessageHandler implements Handler<RoutingContext> {
 
+    public static final int MAX_CHANNEL_HISTORY = 200;
     private final EventServerVerticle verticle;
 
     public IncomingMessageHandler(EventServerVerticle verticle) {
@@ -28,35 +30,76 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         }
 
         context.request().bodyHandler((buffer) -> {
-            JsonObject json = new JsonObject();
+            final JsonObject json = new JsonObject();
             json.readFromBuffer(0, buffer);
-            JsonArray messages = json.getJsonArray("messages");
-            Map<String, List<ChatMessage>> userMessages = new LinkedHashMap<>();
-            for(Object messageObj : messages) {
-                JsonObject messageJson = (JsonObject) messageObj;
-                ChatMessage chatMessage = ChatMessageCodec.INSTANCE.fromJson(messageJson);
-                if(chatMessage.targetUserIds.isEmpty()) {
-                    String channel = verticle.generateChannelAddress(chatMessage.channel);
-                    verticle.eventBus.publish(channel, chatMessage);
-                } else {
-                    for(String userId : chatMessage.targetUserIds) {
-                        List<ChatMessage> msgs = userMessages.computeIfAbsent(userId, (key) -> new ArrayList<>());
-                        msgs.add(chatMessage);
-                    }
+            final JsonArray messages = json.getJsonArray("messages");
+            final Map<String, List<ChatMessage>> userMessages = new LinkedHashMap<>();
+            final Map<String, List<ChatMessage>> channelMessages = new LinkedHashMap<>();
+            categorizeMessages(messages, userMessages, channelMessages);
+            processChannelMessages(userMessages);
+            processUserMessages(userMessages);
+        });
+    }
+
+    private void categorizeMessages(JsonArray messages, Map<String, List<ChatMessage>> userMessages, Map<String, List<ChatMessage>> channelMessages) {
+        for(Object messageObj : messages) {
+            JsonObject messageJson = (JsonObject) messageObj;
+            ChatMessage chatMessage = ChatMessageCodec.INSTANCE.fromJson(messageJson);
+            if(chatMessage.targetUserIds.isEmpty()) {
+                List<ChatMessage> msgs = channelMessages.computeIfAbsent(chatMessage.channel, (key) -> new ArrayList<>());
+                msgs.add(chatMessage);
+            } else {
+                for(String userId : chatMessage.targetUserIds) {
+                    List<ChatMessage> msgs = userMessages.computeIfAbsent(userId, (key) -> new ArrayList<>());
+                    msgs.add(chatMessage);
                 }
             }
-            if(!userMessages.isEmpty()) {
-                for(Map.Entry<String, List<ChatMessage>> entry : userMessages.entrySet()) {
-                    final String userId = entry.getKey();
-                    List<ChatMessage> msgs = entry.getValue();
-                    verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
-                        ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
-                        for (String writerId : writerIds) {
-                            verticle.eventBus.publish(writerId, envelope);
+        }
+    }
+
+    private void processChannelMessages(Map<String, List<ChatMessage>> userMessages) {
+        for(Map.Entry<String, List<ChatMessage>> entry : userMessages.entrySet()) {
+            final String channel = entry.getKey();
+            final List<ChatMessage> messages = entry.getValue();
+            String address = verticle.generateChannelAddress(channel);
+            for(ChatMessage chatMessage : messages) {
+                verticle.eventBus.publish(address, chatMessage);
+            }
+            verticle.sharedDataService.getMessageMap((mapResult) -> {
+                if(mapResult.succeeded()) {
+                    final AsyncMap<String, JsonArray> map = mapResult.result();
+                    map.get(channel, (result) -> {
+                        List<JsonObject> list;
+                        if (result.succeeded()) {
+                            //noinspection unchecked
+                            list = result.result().getList();
+                        } else {
+                            list = new ArrayList<>();
                         }
+
+                        for (ChatMessage message : messages) {
+                            list.add(ChatMessageCodec.INSTANCE.toJson(message));
+                        }
+                        if (list.size() > MAX_CHANNEL_HISTORY) {
+                            list = list.subList(list.size() - MAX_CHANNEL_HISTORY, list.size());
+                        }
+                        map.put(channel, new JsonArray(list), null);
                     });
                 }
-            }
-        });
+            });
+        }
+    }
+
+    private void processUserMessages(Map<String, List<ChatMessage>> userMessages) {
+        for(Map.Entry<String, List<ChatMessage>> entry : userMessages.entrySet()) {
+            final String userId = entry.getKey();
+            List<ChatMessage> msgs = entry.getValue();
+            verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
+                ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
+                for (String writerId : writerIds) {
+                    verticle.eventBus.publish(writerId, envelope);
+                }
+            });
+        }
     }
 }

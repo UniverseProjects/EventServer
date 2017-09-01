@@ -197,8 +197,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     }
                     set.add(socket.writeHandlerID());
                     JsonArray newValue = new JsonArray(new ArrayList<>(set));
-                    asyncMap.put(user.userId, newValue, (ignored) -> {
-                    });
+                    asyncMap.put(user.userId, newValue, null);
                 });
             }
         });
@@ -223,13 +222,30 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         socket.exceptionHandler((throwable) ->
                         log.severe("Socket error for user " + user.userId)
         );
-        socket.endHandler((a) -> onDisconnect(user));
+        socket.endHandler((ignored) -> onDisconnect(socket, user));
     }
 
-    private void onDisconnect(User user) {
+    private void onDisconnect(SockJSSocket socket, User user) {
         user.getChannelConsumers((map) -> {
             map.values().forEach(MessageConsumer<ChatMessage>::unregister);
             map.clear();
         });
+        final LocalMap<String, JsonArray> localSocketMap = verticle.sharedDataService.getLocalSocketMap();
+        final JsonArray localWriters = localSocketMap.get(user.userId);
+        localWriters.remove(socket.writeHandlerID());
+        localSocketMap.put(user.userId, localWriters);
+        verticle.sharedDataService.getGlobalSocketMap((mapResult) -> {
+            if(mapResult.succeeded()) {
+                final AsyncMap<String, JsonArray> asyncMap = mapResult.result();
+                asyncMap.get(user.userId, (result) -> {
+                    if (result.succeeded()) {
+                        final JsonArray writers = result.result();
+                        writers.remove(socket.writeHandlerID());
+                        asyncMap.put(user.userId, writers, null);
+                    }
+                });
+            }
+        });
+
     }
 }
