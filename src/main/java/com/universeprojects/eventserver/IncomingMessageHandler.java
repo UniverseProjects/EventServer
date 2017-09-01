@@ -74,7 +74,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                     final AsyncMap<String, JsonArray> map = mapResult.result();
                     map.get(channel, (result) -> {
                         List<JsonObject> list;
-                        if (result.succeeded()) {
+                        if (result.succeeded() && result.result() != null) {
                             //noinspection unchecked
                             list = result.result().getList();
                         } else {

@@ -47,7 +47,7 @@ public class SharedDataService {
         getGlobalSocketMap((mapResult) -> {
             if (mapResult.succeeded()) {
                 mapResult.result().get(userId, (result) -> {
-                    if (result.succeeded()) {
+                    if (result.succeeded() && result.result() != null) {
                         JsonArray json = result.result();
                         //noinspection unchecked
                         List<String> list = json.getList();

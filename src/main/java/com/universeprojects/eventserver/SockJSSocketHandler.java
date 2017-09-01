@@ -1,9 +1,9 @@
 package com.universeprojects.eventserver;
 
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.AsyncMap;
@@ -14,6 +14,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSSocket;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
@@ -21,9 +22,9 @@ import java.util.logging.Logger;
 
 public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
+    public static final String PARAM_TOKEN = "token";
     private final Logger log = Logger.getLogger(getClass().getCanonicalName());
 
-    public static final String AUTH_BEARER = "Bearer ";
     public static final String TOKEN_ANONYMOUS = "anonymous";
     public static final String SOCKET_MESSAGE_UPDATE = "update";
     protected final EventServerVerticle verticle;
@@ -37,10 +38,12 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final Session session = socket.webSession();
         final User user = verticle.sharedDataService.getSessionToUserMap().get(session.id());
         String uri = socket.uri();
-        final String authHeader = socket.headers().get(HttpHeaders.AUTHORIZATION);
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(uri);
+        Map<String, List<String>> params = queryStringDecoder.parameters();
+        List<String> paramTokenValues = params.get(PARAM_TOKEN);
         final String token;
-        if (authHeader != null && authHeader.startsWith(AUTH_BEARER)) {
-            token = authHeader.substring(AUTH_BEARER.length());
+        if (paramTokenValues != null && paramTokenValues.size() == 1 && !paramTokenValues.get(0).isEmpty()) {
+            token = paramTokenValues.get(0);
         } else {
             token = TOKEN_ANONYMOUS;
         }
@@ -163,14 +166,16 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 }
                 for (String channel : channelNames) {
                     map.get(channel, (result) -> {
-                        if (result.succeeded()) {
+                        if (result.succeeded() && result.result() != null) {
                             final JsonArray jsonArray = result.result();
-                            final List<ChatMessage> messages = new ArrayList<>();
-                            jsonArray.forEach((messageObj) -> {
-                                ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
-                                messages.add(message);
-                            });
-                            messageHandler.accept(channel, messages);
+                            if(jsonArray != null && !jsonArray.isEmpty()) {
+                                final List<ChatMessage> messages = new ArrayList<>();
+                                jsonArray.forEach((messageObj) -> {
+                                    ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
+                                    messages.add(message);
+                                });
+                                messageHandler.accept(channel, messages);
+                            }
                         }
                     });
                 }
@@ -202,7 +207,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 final AsyncMap<String, JsonArray> asyncMap = mapResult.result();
                 asyncMap.get(user.userId, (result) -> {
                     Set<String> set = new LinkedHashSet<>();
-                    if (result.succeeded()) {
+                    if (result.succeeded() && result.result() != null) {
                         @SuppressWarnings("unchecked")
                         List<String> list = result.result().getList();
                         set.addAll(list);
@@ -252,7 +257,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             if(mapResult.succeeded()) {
                 final AsyncMap<String, JsonArray> asyncMap = mapResult.result();
                 asyncMap.get(user.userId, (result) -> {
-                    if (result.succeeded()) {
+                    if (result.succeeded() && result.result() != null) {
                         final JsonArray writers = result.result();
                         writers.remove(socket.writeHandlerID());
                         asyncMap.put(user.userId, writers, null);

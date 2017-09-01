@@ -18,27 +18,41 @@
     <button onclick="sendUpdate()">Update</button>
 </div>
 <div>
-    <label for="authToken">Auth-Token</label>
-    <input type="text" id="authToken"/>
+    <label for="authToken">Auth-Token:</label>
+</div>
+<div>
+    <input type="text" id="authToken" value="testToken"/>
+</div>
+<div>
+    <label for="messages">Messages:</label>
+</div>
+<div>
+    <textarea id="messages" rows="30" cols="100" readonly="readonly"></textarea>
 </div>
 
 <script>
     var socket;
     window.openConnection = function () {
-        var url = "socket?token=token123";
+        var token = document.getElementById("authToken").value;
+        var url = "socket?token="+token;
         var options = {};
         var socket = new SockJS(url, null, options);
+        var printMessage = function (text) {
+            console.log(text);
+            var textArea = document.getElementById("messages");
+            textArea.value = text + "\n" + textArea.value;
+        };
         socket.onopen = function(event) {
-            console.log('open', JSON.stringify(event));
+            printMessage("connected: "+JSON.stringify(event));
         };
         socket.onclose = function (event) {
-            console.log('close', JSON.stringify(event));
+            printMessage("close: "+JSON.stringify(event));
         };
         socket.onerror = function (event) {
-            console.log('error', JSON.stringify(event));
+            printMessage("error: "+JSON.stringify(event));
         };
         socket.onmessage = function (event) {
-            console.log('message', event.data);
+            printMessage("message: "+JSON.stringify(event.data));
         };
     };
 
