@@ -113,6 +113,7 @@ public class SlackCommunicationService {
             chatMessage.senderDisplayName = userName;
             chatMessage.senderId = "slack:"+slackChannel;
             chatMessage.text = text;
+            chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);
             verticle.eventBus.publish(address, chatMessage);
 
             context.response().end();
