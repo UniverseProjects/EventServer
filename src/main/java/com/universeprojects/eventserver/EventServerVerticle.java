@@ -43,6 +43,8 @@ public class EventServerVerticle extends AbstractVerticle {
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
 
+        router.route("/status").handler((context) -> context.response().end());
+
         router.route().handler(CookieHandler.create());
         router.route().handler(CorsHandler.create(corsOrigins));
         router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)).setNagHttps(false));
