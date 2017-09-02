@@ -18,7 +18,6 @@ public class Main {
     @SuppressWarnings("UnusedParameters")
     public void run(String[] args) {
         VertxOptions options = createVertxOptions();
-        options.setClustered(true);
         com.hazelcast.config.Config hazelCastConfig = createHazelcastConfig();
         HazelcastClusterManager clusterManager = new HazelcastClusterManager(hazelCastConfig);
         options.setClusterManager(clusterManager);
@@ -50,7 +49,9 @@ public class Main {
     }
 
     private VertxOptions createVertxOptions() {
-        return new VertxOptions();
+        VertxOptions options = new VertxOptions();
+        options.setClustered(true);
+        return options;
     }
 
 }
