@@ -129,6 +129,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private MessageConsumer<ChatMessage> registerChannel(String channel, User user) {
+        verticle.logConnectionEvent(() -> "Registering channel-consumer for channel "+channel+" to user " + user.userId);
         final String address = verticle.generateChannelAddress(channel);
         return verticle.eventBus.consumer(address, (message) -> handleChannelMessage(user, message));
     }
