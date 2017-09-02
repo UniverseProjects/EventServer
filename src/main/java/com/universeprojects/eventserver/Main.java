@@ -1,12 +1,14 @@
 package com.universeprojects.eventserver;
 
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,8 +17,6 @@ public class Main {
     public static final String CONFIG_HAZELCAST_GROUP_PASSWORD = "hazelcast.group.password";
     public static final String CONFIG_HAZELCAST_MANAGEMENT_URL = "hazelcast.management.url";
     public static final String CONFIG_CLUSTER_HOST = "cluster.host";
-    public static final String RANCHER_FIND_IP_URL = "http://rancher-metadata/2015-07-25/self/container/primary_ip";
-    public static final String CONFIG_QUERY_RANCHER_IP = "cluster.rancher.query";
 
     private final Logger log = Logger.getGlobal();
 
@@ -26,15 +26,15 @@ public class Main {
 
     @SuppressWarnings("UnusedParameters")
     public void run(String[] args) {
-        createVertxOptions((options) ->
-                Vertx.clusteredVertx(options, (res) -> {
-                    if (res.succeeded()) {
-                        Vertx vertx = res.result();
-                        deployVerticle(vertx);
-                    } else {
-                        log.log(Level.SEVERE, "Error starting clustered Vertx", res.cause());
-                    }
-                }));
+        VertxOptions options = createVertxOptions();
+        Vertx.clusteredVertx(options, (res) -> {
+            if (res.succeeded()) {
+                Vertx vertx = res.result();
+                deployVerticle(vertx);
+            } else {
+                log.log(Level.SEVERE, "Error starting clustered Vertx", res.cause());
+            }
+        });
     }
 
     private com.hazelcast.config.Config createHazelcastConfig() {
@@ -59,35 +59,40 @@ public class Main {
         vertx.deployVerticle(new EventServerVerticle());
     }
 
-    private void createVertxOptions(Handler<VertxOptions> optionsHandler) {
+    private VertxOptions createVertxOptions() {
         VertxOptions options = new VertxOptions();
         options.setClustered(true);
         com.hazelcast.config.Config hazelCastConfig = createHazelcastConfig();
         HazelcastClusterManager clusterManager = new HazelcastClusterManager(hazelCastConfig);
         options.setClusterManager(clusterManager);
         String clusterHost = Config.getString(CONFIG_CLUSTER_HOST, null);
-        if (clusterHost != null) {
-            options.setClusterHost(clusterHost);
-        } else {
-            boolean queryFromRancher = Config.getBoolean(CONFIG_QUERY_RANCHER_IP, false);
-            if (queryFromRancher) {
-                final Vertx helperVertx = Vertx.vertx();
-                final HttpClient httpClient = helperVertx.createHttpClient();
-                final HttpClientRequest request = httpClient.get(RANCHER_FIND_IP_URL);
-                request.exceptionHandler((exception) -> {
-                    log.log(Level.SEVERE, "Cannot query for container IP", exception);
-                    helperVertx.close((ignored) -> optionsHandler.handle(options));
-                });
-                request.handler((response) ->
-                        response.bodyHandler((buffer) -> {
-                            options.setClusterHost(buffer.toString());
-                            helperVertx.close((ignored) -> optionsHandler.handle(options));
-                        }));
-                request.end();
-                return;
-            }
+        if (clusterHost == null) {
+            clusterHost = pickHostAddress();
         }
-        optionsHandler.handle(options);
+        options.setClusterHost(clusterHost);
+        return options;
+    }
+
+    private String pickHostAddress() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface ni = networkInterfaces.nextElement();
+                Enumeration<InetAddress> e = ni.getInetAddresses();
+                while (e.hasMoreElements()) {
+                    InetAddress inetAddress = e.nextElement();
+                    if (inetAddress instanceof Inet6Address) {
+                        continue;
+                    }
+                    if (!inetAddress.isLoopbackAddress()) {
+                        return inetAddress.getHostAddress();
+                    }
+                }
+            }
+            return "localhost";
+        } catch (SocketException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
 }
