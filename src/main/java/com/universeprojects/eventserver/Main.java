@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 public class Main {
     public static final String CONFIG_HAZELCAST_GROUP_NAME = "hazelcast.group.name";
     public static final String CONFIG_HAZELCAST_GROUP_PASSWORD = "hazelcast.group.password";
+    public static final String CONFIG_HAZELCAST_MANAGEMENT_URL = "hazelcast.management.url";
     private final Logger log = Logger.getGlobal();
     public static void main(String[] args) {
         new Main().run(args);
@@ -41,7 +42,11 @@ public class Main {
         if(hazelcastGroupPassword != null) {
             hazelcastConfig.getGroupConfig().setPassword(hazelcastGroupPassword);
         }
-        hazelcastConfig.getManagementCenterConfig().setEnabled(true);
+        String managementUrl = Config.getString(CONFIG_HAZELCAST_MANAGEMENT_URL, null);
+        if(managementUrl != null) {
+            hazelcastConfig.getManagementCenterConfig().setEnabled(true);
+            hazelcastConfig.getManagementCenterConfig().setUrl(managementUrl);
+        }
         return hazelcastConfig;
     }
 
