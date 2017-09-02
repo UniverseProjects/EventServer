@@ -59,17 +59,17 @@ public class EventServerVerticle extends AbstractVerticle {
 
         eventBus = vertx.eventBus();
         sharedDataService = new SharedDataService(vertx.sharedData());
-        sockJSHandler = SockJSHandler.create(vertx);
         eventBus.registerDefaultCodec(ChatMessage.class, ChatMessageCodec.INSTANCE);
         eventBus.registerDefaultCodec(ChatEnvelope.class, ChatEnvelopeCodec.INSTANCE);
-
-        SockJSHandlerOptions sockJSHandlerOptions = new SockJSHandlerOptions();
 
         authService = new AuthService(this);
         sockJSSocketHandler = new SockJSSocketHandler(this);
 
+        SockJSHandlerOptions sockJSHandlerOptions = new SockJSHandlerOptions();
+        sockJSHandler = SockJSHandler.create(vertx, sockJSHandlerOptions).socketHandler(sockJSSocketHandler);
+
         Route socketRoute = router.route("/socket/*");
-        socketRoute.handler(SockJSHandler.create(vertx, sockJSHandlerOptions).socketHandler(sockJSSocketHandler));
+        socketRoute.handler(sockJSHandler);
 
         final ApiAuthHandler apiAuthHandler = new ApiAuthHandler();
         router.route("/send").handler(apiAuthHandler);
