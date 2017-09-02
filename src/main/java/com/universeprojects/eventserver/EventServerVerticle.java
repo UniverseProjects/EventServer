@@ -13,6 +13,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public class EventServerVerticle extends AbstractVerticle {
@@ -22,6 +23,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public static final String CONFIG_MODE = "server.mode";
     public static final String CONFIG_PORT = "server.port";
     public static final String CONFIG_CORS_ORIGINS = "cors.origins";
+    public static final String CONFIG_LOG_CONNECTIONS = "log.connections";
 
     public enum ServerMode {
         PROD, TEST, TEST_CLIENT
@@ -34,9 +36,11 @@ public class EventServerVerticle extends AbstractVerticle {
     public SharedDataService sharedDataService;
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
+    private boolean logConnections = false;
 
     @Override
     public void start() {
+        logConnections = Config.getBoolean(CONFIG_LOG_CONNECTIONS, false);
         String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
         int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
@@ -96,5 +100,15 @@ public class EventServerVerticle extends AbstractVerticle {
 
     public String generateUserUpdateAddress(String userId) {
         return "user.update."+userId;
+    }
+
+    public boolean shouldLogConnections() {
+        return logConnections;
+    }
+
+    public void logConnectionEvent(Supplier<String> messageSupplier) {
+        if(shouldLogConnections()) {
+            log.info(messageSupplier.get());
+        }
     }
 }

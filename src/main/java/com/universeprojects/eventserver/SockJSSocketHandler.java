@@ -28,10 +28,11 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     public static final String TOKEN_ANONYMOUS = "anonymous";
     public static final String SOCKET_MESSAGE_UPDATE = "update";
-    protected final EventServerVerticle verticle;
+    private final EventServerVerticle verticle;
 
     public SockJSSocketHandler(EventServerVerticle verticle) {
         this.verticle = verticle;
+
     }
 
     @Override
@@ -66,6 +67,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else {
             executeAuthentication(socket, user, token, onAuthSuccess);
         }
+        verticle.logConnectionEvent(() -> "Established connection on " + socket.localAddress() + " to client " + socket.remoteAddress());
     }
 
     private void executeAuthentication(SockJSSocket socket, User user, String token, BiConsumer<User, Set<String>> onSuccess) {
@@ -128,15 +130,19 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private MessageConsumer<ChatMessage> registerChannel(String channel, User user) {
         final String address = verticle.generateChannelAddress(channel);
-        return verticle.eventBus.consumer(address, (message) -> {
-            final ChatEnvelope envelope = ChatEnvelope.forMessage(message.body());
-            final JsonObject messageJson = envelope.toJson();
-            final Buffer buffer = Buffer.buffer(messageJson.encode());
-            verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
-                for (String writerId : writerIds) {
-                    verticle.eventBus.send(writerId, buffer);
-                }
-            });
+        return verticle.eventBus.consumer(address, (message) -> handleChannelMessage(user, message));
+    }
+
+    private void handleChannelMessage(User user, Message<ChatMessage> message) {
+        final ChatMessage chatMessage = message.body();
+        final ChatEnvelope envelope = ChatEnvelope.forMessage(chatMessage);
+        verticle.logConnectionEvent(() -> "Sending channel-message for channel "+chatMessage.channel+" to user " + user.userId + ": " + chatMessage.text);
+        final JsonObject messageJson = envelope.toJson();
+        final Buffer buffer = Buffer.buffer(messageJson.encode());
+        verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
+            for (String writerId : writerIds) {
+                verticle.eventBus.send(writerId, buffer);
+            }
         });
     }
 

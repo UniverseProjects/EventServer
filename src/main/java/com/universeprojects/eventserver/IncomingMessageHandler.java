@@ -70,6 +70,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
             final List<ChatMessage> messages = entry.getValue();
             String address = verticle.generateChannelAddress(channel);
             for(ChatMessage chatMessage : messages) {
+                verticle.logConnectionEvent(() -> "Processing message for channel " + channel + ": " + chatMessage.text);
                 verticle.eventBus.publish(address, chatMessage);
             }
             verticle.sharedDataService.getMessageMap((mapResult) -> {
@@ -105,6 +106,11 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         for(Map.Entry<String, List<ChatMessage>> entry : messageMap.entrySet()) {
             final String userId = entry.getKey();
             List<ChatMessage> msgs = entry.getValue();
+            if(verticle.shouldLogConnections()) {
+                for(ChatMessage chatMessage : msgs) {
+                    verticle.logConnectionEvent(() -> "Processing direct message for user " + userId + ": " + chatMessage.text);
+                }
+            }
             verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
                 ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
                 Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
