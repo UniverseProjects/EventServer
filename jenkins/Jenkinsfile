@@ -64,7 +64,7 @@ node('') {
         dir('docker') {
             withCredentials([string(credentialsId: 'docker-registry-url', variable: 'dockerRegistry')]) {
                 docker.withRegistry("https://${dockerRegistry}", "docker-registry-auth") {
-                    def image = docker.build("EventServer:$tag")
+                    def image = docker.build("event-server:$tag")
                     image.push()
                 }
             }
