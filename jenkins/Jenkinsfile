@@ -49,6 +49,9 @@ node('') {
         }
         try {
             sh "${gradlePath}/bin/gradle --no-daemon ${testStr} shadowJar"
+        } catch (Exception ex) {
+            slackSend color: "danger", message: "${env.JOB_NAME} - #${env.BUILD_NUMBER} - 'Build' srage failed"
+            throw ex
         } finally {
             if(runTests) {
                 junit "build/test-results/test/*" as String
