@@ -41,6 +41,7 @@ public class Main {
         if(hazelcastGroupPassword != null) {
             hazelcastConfig.getGroupConfig().setPassword(hazelcastGroupPassword);
         }
+        hazelcastConfig.getManagementCenterConfig().setEnabled(true);
         return hazelcastConfig;
     }
 
