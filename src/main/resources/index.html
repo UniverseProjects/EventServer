@@ -36,7 +36,7 @@
         var token = document.getElementById("authToken").value;
         var url = "socket?token="+token;
         var options = {};
-        var socket = new SockJS(url, null, options);
+        socket = new SockJS(url, null, options);
         var printMessage = function (text) {
             console.log(text);
             var timeStamp = new Date().toISOString();
