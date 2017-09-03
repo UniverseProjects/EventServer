@@ -50,7 +50,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             token = TOKEN_ANONYMOUS;
         }
 
-        final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
+        final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
                 updateChannels(newUser, channels, (added) -> {
                     findOldMessages(channels, (channel, messages) -> {
                         ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
@@ -63,9 +63,9 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             AuthResponse authResponse = new AuthResponse(true, "test");
             authResponse.channels.add("public");
             authResponse.channels.add("group.test");
-            onAuthSuccess(user, authResponse, onAuthSuccess);
+            onAuthSuccess(user, authResponse, onSuccess);
         } else {
-            executeAuthentication(socket, user, token, onAuthSuccess);
+            executeAuthentication(socket, user, token, onSuccess);
         }
         verticle.logConnectionEvent(() -> "Established connection on " + socket.localAddress() + " to client " + socket.remoteAddress());
     }

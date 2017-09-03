@@ -21,14 +21,16 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
     public JsonObject toJson(ChatMessage chatMessage, boolean includeTargetUsers) {
         JsonObject json = new JsonObject();
         json.put("senderUserId", chatMessage.senderId);
-        json.put("senderUserDisplayName", chatMessage.senderDisplayName);
+        json.put("senderDisplayName", chatMessage.senderDisplayName);
         if(includeTargetUsers) {
             json.put("targetUserIds", new JsonArray(new ArrayList<>(chatMessage.targetUserIds)));
         }
         json.put("channel", chatMessage.channel);
         json.put("text", chatMessage.text);
         json.put("timestamp", chatMessage.timestamp);
-        json.put("additionalData", chatMessage.additionalData.copy());
+        if(chatMessage.additionalData != null) {
+            json.put("additionalData", chatMessage.additionalData.copy());
+        }
         return json;
     }
 
