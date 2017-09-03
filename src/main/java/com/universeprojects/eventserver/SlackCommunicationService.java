@@ -15,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class SlackCommunicationService {
     public static final String CONFIG_SLACK_ENABLED = "slack.enabled";
@@ -28,6 +29,8 @@ public class SlackCommunicationService {
     public static final String DATA_AUTHOR_LINK = "slackAuthorLink";
     public static final String DATA_AUTHOR_COLOR = "slackAuthorColor";
     public static final String DATA_ADDITIONAL_FIELDS = "slackAdditionalFields";
+
+    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
 
     private final EventServerVerticle verticle;
     private final HttpClient httpClient;
@@ -130,6 +133,7 @@ public class SlackCommunicationService {
         verticle.sharedDataService.getSlackLock((result) -> {
             if(result.succeeded()) {
                 instanceLock = result.result();
+                log.info("Acquired Slack lock - activating message-service");
                 cancelTimer();
                 setupHandlers();
             } else {
