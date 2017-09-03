@@ -22,4 +22,9 @@ public class User implements Shareable {
             mapHandler.handle(channelConsumers);
         }
     }
+
+    @Override
+    public String toString() {
+        return "User{"+userId+"]";
+    }
 }
