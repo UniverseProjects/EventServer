@@ -52,6 +52,9 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         for(Object messageObj : messages) {
             JsonObject messageJson = (JsonObject) messageObj;
             ChatMessage chatMessage = ChatMessageCodec.INSTANCE.fromJson(messageJson);
+            if(chatMessage.timestamp == null) {
+                chatMessage.timestamp = System.currentTimeMillis();
+            }
             if(chatMessage.targetUserIds.isEmpty()) {
                 List<ChatMessage> msgs = channelMessages.computeIfAbsent(chatMessage.channel, (key) -> new ArrayList<>());
                 msgs.add(chatMessage);

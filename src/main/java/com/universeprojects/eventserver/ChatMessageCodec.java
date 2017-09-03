@@ -27,6 +27,7 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
         }
         json.put("channel", chatMessage.channel);
         json.put("text", chatMessage.text);
+        json.put("timestamp", chatMessage.timestamp);
         json.put("additionalData", chatMessage.additionalData.copy());
         return json;
     }
@@ -44,6 +45,7 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
 
         chatMessage.channel = json.getString("channel");
         chatMessage.text = json.getString("text");
+        chatMessage.timestamp = json.getLong("timestamp");
         chatMessage.additionalData = json.getJsonObject("additionalData");
         return chatMessage;
     }

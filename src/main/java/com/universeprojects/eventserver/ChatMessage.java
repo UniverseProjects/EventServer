@@ -11,6 +11,7 @@ public class ChatMessage {
     public String senderDisplayName;
     public String channel;
     public String text;
+    public Long timestamp;
     public JsonObject additionalData;
 
     public String toString() {

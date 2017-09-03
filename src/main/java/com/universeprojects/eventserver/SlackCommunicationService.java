@@ -12,6 +12,7 @@ import io.vertx.core.shareddata.Lock;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -94,8 +95,9 @@ public class SlackCommunicationService {
             String token = attributes.get("token");
             String userName = attributes.get("user_name");
             String text = attributes.get("text");
+            String timestampStr = attributes.get("timestamp");
             String slackChannel = attributes.get("channel_name");
-            if(token == null || userName == null || text == null || slackChannel == null) {
+            if(token == null || userName == null || text == null || slackChannel == null || timestampStr == null) {
                 context.response().setStatusCode(400);
                 context.response().end();
                 return;
@@ -116,6 +118,7 @@ public class SlackCommunicationService {
             chatMessage.senderDisplayName = userName;
             chatMessage.senderId = "slack:"+slackChannel;
             chatMessage.text = text;
+            chatMessage.timestamp = new BigDecimal(timestampStr).longValue();
             chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);
             verticle.eventBus.publish(address, chatMessage);
 

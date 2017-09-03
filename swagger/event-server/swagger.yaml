@@ -59,6 +59,9 @@ paths:
                     channel:
                       type: string
                       example: public
+                    timestamp:
+                      type: integer
+                      format: int64
                     text:
                       type: string
                       example: This is the text sent to the users
