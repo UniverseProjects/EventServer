@@ -8,6 +8,8 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.Lock;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -16,7 +18,6 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class SlackCommunicationService {
     public static final String CONFIG_SLACK_ENABLED = "slack.enabled";
@@ -31,7 +32,7 @@ public class SlackCommunicationService {
     public static final String DATA_AUTHOR_COLOR = "slackAuthorColor";
     public static final String DATA_ADDITIONAL_FIELDS = "slackAdditionalFields";
 
-    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final EventServerVerticle verticle;
     private final HttpClient httpClient;

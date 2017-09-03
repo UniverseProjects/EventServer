@@ -3,17 +3,17 @@ package com.universeprojects.eventserver;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.Lock;
 import io.vertx.core.shareddata.SharedData;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class SharedDataService {
-    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final SharedData sd;
 
     public SharedDataService(SharedData sd) {
@@ -60,7 +60,7 @@ public class SharedDataService {
                     }
                 });
             } else {
-                log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
+                log.warn("Error getting message-map", mapResult.cause());
             }
         });
     }

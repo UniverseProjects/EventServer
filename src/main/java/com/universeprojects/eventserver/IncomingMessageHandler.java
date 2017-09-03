@@ -5,6 +5,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.web.RoutingContext;
 
@@ -12,13 +14,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class IncomingMessageHandler implements Handler<RoutingContext> {
 
     public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
-    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final EventServerVerticle verticle;
     private final int channelHistorySize;
@@ -99,7 +99,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                         map.put(channel, new JsonArray(list), null);
                     });
                 } else {
-                    log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
+                    log.warn("Error getting message-map", mapResult.cause());
                 }
             });
         }

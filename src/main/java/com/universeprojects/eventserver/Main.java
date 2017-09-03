@@ -2,6 +2,8 @@ package com.universeprojects.eventserver;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
 import java.net.Inet6Address;
@@ -9,8 +11,6 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Main {
     public static final String CONFIG_HAZELCAST_GROUP_NAME = "hazelcast.group.name";
@@ -18,7 +18,7 @@ public class Main {
     public static final String CONFIG_HAZELCAST_MANAGEMENT_URL = "hazelcast.management.url";
     public static final String CONFIG_CLUSTER_HOST = "cluster.host";
 
-    private final Logger log = Logger.getGlobal();
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static void main(String[] args) {
         new Main().run(args);
@@ -32,7 +32,7 @@ public class Main {
                 Vertx vertx = res.result();
                 deployVerticle(vertx);
             } else {
-                log.log(Level.SEVERE, "Error starting clustered Vertx", res.cause());
+                log.error("Error starting clustered Vertx", res.cause());
             }
         });
     }

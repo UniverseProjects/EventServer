@@ -4,6 +4,8 @@ package com.universeprojects.eventserver;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -14,11 +16,10 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 public class EventServerVerticle extends AbstractVerticle {
 
-    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String CONFIG_MODE = "server.mode";
     public static final String CONFIG_PORT = "server.port";

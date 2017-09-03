@@ -7,6 +7,8 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.ext.web.Session;
@@ -18,13 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     public static final String PARAM_TOKEN = "token";
-    private final Logger log = Logger.getLogger(getClass().getCanonicalName());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String TOKEN_ANONYMOUS = "anonymous";
     public static final String SOCKET_MESSAGE_UPDATE = "update";
@@ -53,6 +53,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
                 updateChannels(newUser, channels, (added) -> {
                     findOldMessages(channels, (channel, messages) -> {
+                        verticle.logConnectionEvent(() -> "Sending old messages for channel "+channel+" to user " + user.userId);
                         ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                         send(socket, envelope);
                     });
@@ -78,7 +79,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 onAuthError(socket, "Authentication failed");
             }
         }, (exception) -> {
-            log.log(Level.SEVERE, "Error while authenticating", exception);
+            log.error("Error while authenticating", exception);
             onAuthError(socket, "Error while authenticating");
         });
     }
@@ -91,6 +92,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else {
             user = sessionUser;
         }
+        user.connectionCounter.incrementAndGet();
         if (onSuccess != null) {
             onSuccess.accept(user, authResponse.channels);
         }
@@ -168,7 +170,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     });
                 }
             } else {
-                log.log(Level.WARNING, "Error getting message-map", mapResult.cause());
+                log.warn("Error getting message-map", mapResult.cause());
             }
         });
     }
@@ -190,6 +192,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         verticle.sharedDataService.getSessionToUserMap().put(socket.webSession().id(), user);
         verticle.sharedDataService.getGlobalSocketMap((mapResult) -> {
             if (mapResult.succeeded()) {
+                verticle.logConnectionEvent(() -> "Registering socket "+socket.writeHandlerID()+" for user " + user.userId);
                 final AsyncMap<String, JsonArray> asyncMap = mapResult.result();
                 asyncMap.get(user.userId, (result) -> {
                     Set<String> set = new LinkedHashSet<>();
@@ -203,7 +206,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     asyncMap.put(user.userId, newValue, null);
                 });
             } else {
-                log.log(Level.WARNING, "Error getting global socket-map", mapResult.cause());
+                log.warn("Error getting global socket-map", mapResult.cause());
             }
         });
         final LocalMap<String, JsonArray> localSocketMap = verticle.sharedDataService.getLocalSocketMap();
@@ -215,7 +218,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         localSocketMap.put(user.userId, socketWritersJson);
         socket.handler((buffer) -> onSocketMessage(socket, user, token, buffer));
         socket.exceptionHandler((throwable) ->
-                        log.severe("Socket error for user " + user.userId)
+            log.error("Socket error for user " + user.userId)
         );
         socket.endHandler((ignored) -> onDisconnect(socket, user));
     }
@@ -228,7 +231,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             if (loggedBuffer.length() > 100) {
                 loggedBuffer = loggedBuffer.slice(0, 100);
             }
-            log.severe("Received bad message on socket for user " + user.userId + ": " + loggedBuffer.toString());
+            log.error("Received bad message on socket for user " + user.userId + ": " + loggedBuffer.toString());
         }
     }
 
@@ -260,10 +263,16 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private void onDisconnect(SockJSSocket socket, User user) {
-        user.getChannelConsumers((map) -> {
-            map.values().forEach(MessageConsumer<ChatMessage>::unregister);
-            map.clear();
-        });
+        long newCount = user.connectionCounter.decrementAndGet();
+        if(newCount <= 0) {
+            user.getChannelConsumers((map) -> {
+                for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : map.entrySet()) {
+                    verticle.logConnectionEvent(() -> "Unregistering channel handler on channel " + entry.getKey() + " for user " + user.userId);
+                    entry.getValue().unregister();
+                }
+                map.clear();
+            });
+        }
         final LocalMap<String, JsonArray> localSocketMap = verticle.sharedDataService.getLocalSocketMap();
         final JsonArray localWriters = localSocketMap.get(user.userId);
         localWriters.remove(socket.writeHandlerID());
@@ -279,7 +288,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                     }
                 });
             } else {
-                log.log(Level.WARNING, "Error getting global socket-map", mapResult.cause());
+                log.warn("Error getting global socket-map", mapResult.cause());
             }
         });
 
