@@ -1,10 +1,7 @@
 package com.universeprojects.eventserver;
 
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.MultiMap;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -13,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.Lock;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -35,7 +33,7 @@ public class SlackCommunicationService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final EventServerVerticle verticle;
-    private final HttpClient httpClient;
+    private final WebClient client;
     private final boolean slackEnabled;
     private final String slackUrl;
     private final String slackUsername;
@@ -74,7 +72,7 @@ public class SlackCommunicationService {
         } else {
             this.slackIncomingChannelMap = Collections.emptyMap();
         }
-        this.httpClient = verticle.getVertx().createHttpClient();
+        this.client = WebClient.create(verticle.getVertx());
         verticle.logConnectionEvent(() -> "Started SlackService "+toString());
     }
 
@@ -205,8 +203,6 @@ public class SlackCommunicationService {
             authorColor = additionalData.getString(DATA_AUTHOR_COLOR);
             additionalFields = additionalData.getJsonArray(DATA_ADDITIONAL_FIELDS);
         }
-        final HttpClientRequest request = httpClient.post(slackUrl);
-        request.putHeader(HttpHeaderNames.CONTENT_TYPE, "application/json");
         JsonObject payload = new JsonObject();
         payload.put("channel", slackChannel);
         putIfNotNull(payload, "username", slackUsername);
@@ -224,7 +220,8 @@ public class SlackCommunicationService {
             attachment.put("fields", additionalFields.copy());
         }
         verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+getClass()+": "+payload.encode());
-        request.end(payload.encode());
+        client.post(slackUrl).sendJsonObject(payload, (result) ->
+            verticle.logConnectionEvent(() -> "Slack send success: "+result.succeeded()));
     }
 
 
