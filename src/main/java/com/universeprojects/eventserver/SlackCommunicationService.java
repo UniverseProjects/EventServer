@@ -141,6 +141,7 @@ public class SlackCommunicationService {
 
     public void activate() {
         if(!canActivateOutgoing()) return;
+        verticle.logConnectionEvent(() -> "Attempting to acquire slack lock");
         verticle.sharedDataService.getSlackLock((result) -> {
             if(result.succeeded()) {
                 instanceLock = result.result();
