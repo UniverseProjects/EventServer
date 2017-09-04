@@ -220,8 +220,13 @@ public class SlackCommunicationService {
             attachment.put("fields", additionalFields.copy());
         }
         verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+slackChannel+": "+payload.encode());
-        client.post(slackUrl).sendJsonObject(payload, (result) ->
-            verticle.logConnectionEvent(() -> "Slack send success: "+result.succeeded()));
+        client.post(slackUrl).sendJsonObject(payload, (result) -> {
+            if (result.succeeded()) {
+                verticle.logConnectionEvent(() -> "Slack send successful");
+            } else {
+                log.warn("Slack send failed for "+payload.encode(), result.cause());
+            }
+        });
     }
 
 
