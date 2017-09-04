@@ -27,7 +27,7 @@ In PROD-Mode (default) only the REST- and SockJS-endpoints are active.
 * The event-server accepts the websocket-connection and sends a GET request with the token to the application-server's ```/authChat``` endpoint
 * The application-server responds with the user-id for the token and the list of channels the user belongs to
 * The event-server sends the last 200 channel-messages (configurable) to the user and is set up to send him future messages
-* The definition of the /chatAuth endpoint can be found in the [auth-server swagger.yaml file](swagger/auth-server/swagger.yaml)
+* The definition of the ```/chatAuth``` endpoint can be found in the [auth-server swagger.yaml file](swagger/auth-server/swagger.yaml)
 
 #### Sending
 * Messages are only received via the application-server - not by the user directly
@@ -54,28 +54,28 @@ In PROD-Mode (default) only the REST- and SockJS-endpoints are active.
 
 
 ## Config-options
- Option                   | Type                      | Default value | Description
---------------------------|---------------------------|---------------|---------------
-cluster.host              |String                     |null           |Address of this machine. Might be required in case of multiple interfaces
-hazelcast.group.name      |String                     |dev            |Hazelcast group
-hazelcast.group.password  |String                     |dev-pass       |Hazelcast group password
-hazelcast.management.url  |String                     |null           |URL of a Hazelcast management-server
-server.mode               |Enum(PROD,TEST,TEST_CLIENT)|PROD           |Mode the server runs in. TEST/TEST_CLIENT provide the index.html. TEST_CLIENT mocks the authentication
-server.port               |int                        |6969           |THe port the server runs on
-cors.origins              |String                     |*              |CORS header origin to use. Can be set more strictly for better security
-log.connections           |boolean                    |false          |Activate connection-logging. This can produce a lot of log-entries
-channel.history.size      |int                        |200            |Amount of entries to keep per channel. These entries are sent to a client on connection.
-api.header.name           |String                     |api_key        |Header-Name for the API-Key for the /send endpoint
-api.header.value          |String                     |null           |Heaver-Value for the API-Key for the /send endpoint
-remote.host               |String                     |localhost      |Hostname of the application-server with a /chatAuth endpoint
-remote.port               |int                        |8886           |Port of the application-server
-remote.ssl                |boolean                    |false          |If true the event-server will use HTTPS to connect to the application-server
-remote.auth.endpoint      |String                     |/chatAuth      |Name of the chatAuth-endpoint
-remote.api.header.name    |String                     |api_key        |Header-Name for the API-Key for the chatAuth endpoint on the application-server
-remote.api.header.value   |String                     |null           |Header-Value for the API-Key for the chatAuth endpoint on the application-server
-slack.enabled             |boolean                    |false          |Enables slack integration
-slack.url                 |String                     |null           |URL to a slack incoming-webhook
-slack.channels.incoming   |JsonObject                 |null           |Map Slack-Channel -> EventServer-Channel
-slack.channels.outgoing   |JsonObject                 |null           |Map Event-Server-Channel -> Slack-Channel
-slack.username            |String                     |null           |Username to use for sending messages to a slack incoming-webhook
-slack.token               |String                     |null           |Token that the event-server can use to authenticate a slack outgoing-webhook
+ Option                   | Type/Values         | Default value | Description
+--------------------------|---------------------|---------------|---------------
+cluster.host              |String               |null           |Address of this machine. Might be required in case of multiple interfaces
+hazelcast.group.name      |String               |dev            |Hazelcast group
+hazelcast.group.password  |String               |dev-pass       |Hazelcast group password
+hazelcast.management.url  |String               |null           |URL of a Hazelcast management-server
+server.mode               |PROD/TEST/TEST_CLIENT|PROD           |Mode the server runs in. TEST/TEST_CLIENT provide the index.html. TEST_CLIENT mocks the authentication
+server.port               |int                  |6969           |THe port the server runs on
+cors.origins              |String               |*              |CORS header origin to use. Can be set more strictly for better security
+log.connections           |boolean              |false          |Activate connection-logging. This can produce a lot of log-entries
+channel.history.size      |int                  |200            |Amount of entries to keep per channel. These entries are sent to a client on connection.
+api.header.name           |String               |api_key        |Header-Name for the API-Key for the /send endpoint
+api.header.value          |String               |null           |Heaver-Value for the API-Key for the /send endpoint
+remote.host               |String               |localhost      |Hostname of the application-server with a chatAuth endpoint
+remote.port               |int                  |8886           |Port of the application-server
+remote.ssl                |boolean              |false          |If true the event-server will use HTTPS to connect to the application-server
+remote.auth.endpoint      |String               |/chatAuth      |Name of the chatAuth-endpoint
+remote.api.header.name    |String               |api_key        |Header-Name for the API-Key for the chatAuth endpoint on the application-server
+remote.api.header.value   |String               |null           |Header-Value for the API-Key for the chatAuth endpoint on the application-server
+slack.enabled             |boolean              |false          |Enables slack integration
+slack.url                 |String               |null           |URL to a slack incoming-webhook
+slack.channels.incoming   |JsonObject           |null           |Map Slack-Channel -> EventServer-Channel
+slack.channels.outgoing   |JsonObject           |null           |Map Event-Server-Channel -> Slack-Channel
+slack.username            |String               |null           |Username to use for sending messages to a slack incoming-webhook
+slack.token               |String               |null           |Token that the event-server can use to authenticate a slack outgoing-webhook
