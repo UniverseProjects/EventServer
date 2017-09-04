@@ -33,9 +33,9 @@ public class AuthService {
 
     public AuthService(EventServerVerticle verticle) {
         this.verticle = verticle;
-        String host = Config.getString(CONFIG_REMOTE_HOST, "www.universeprojects.com");
-        int port = Config.getInt(CONFIG_REMOTE_PORT, 443);
-        boolean ssl = Config.getBoolean(CONFIG_REMOTE_SSL, true);
+        String host = Config.getString(CONFIG_REMOTE_HOST, "localhost");
+        int port = Config.getInt(CONFIG_REMOTE_PORT, 8886);
+        boolean ssl = Config.getBoolean(CONFIG_REMOTE_SSL, false);
         authEndpoint = Config.getString(CONFIG_AUTH_ENDPOINT, "/chatAuth");
         headerName = Config.getString(CONFIG_HEADER_NAME, "api_key");
         headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
