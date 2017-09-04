@@ -149,6 +149,7 @@ public class SlackCommunicationService {
                 cancelTimer();
                 setupHandlers();
             } else {
+                log.info("Failed to acquire slack lock", result.cause());
                 setupTimer();
             }
         });
