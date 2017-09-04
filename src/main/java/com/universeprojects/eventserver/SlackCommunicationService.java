@@ -118,8 +118,16 @@ public class SlackCommunicationService {
                 context.response().end();
                 return;
             }
-            String channel = slackIncomingChannelMap.get(slackChannel);
+            String channel;
+            if(slackIncomingChannelMap.containsKey(slackChannel)) {
+                channel = slackIncomingChannelMap.get(slackChannel);
+            } else if(slackIncomingChannelMap.containsKey("#"+slackChannel)) {
+                channel = slackIncomingChannelMap.get("#"+slackChannel);
+            } else {
+                channel = null;
+            }
             if(channel == null) {
+
                 verticle.logConnectionEvent(() -> "No channel defined for slack-channel "+slackChannel);
                 context.response().end();
                 return;
@@ -211,7 +219,13 @@ public class SlackCommunicationService {
             additionalFields = additionalData.getJsonArray(DATA_ADDITIONAL_FIELDS);
         }
         JsonObject payload = new JsonObject();
-        payload.put("channel", slackChannel);
+        String channel;
+        if(slackChannel.startsWith("#")) {
+            channel = slackChannel;
+        } else {
+            channel = "#"+slackChannel;
+        }
+        payload.put("channel", channel);
         putIfNotNull(payload, "username", slackUsername);
         JsonArray attachments = new JsonArray();
         payload.put("attachments", attachments);
@@ -226,7 +240,7 @@ public class SlackCommunicationService {
         if(additionalFields != null) {
             attachment.put("fields", additionalFields.copy());
         }
-        verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+slackChannel+": "+payload.encode());
+        verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+channel+": "+payload.encode());
         client.postAbs(slackUrl).sendJsonObject(payload, (result) -> {
             if (result.succeeded()) {
                 verticle.logConnectionEvent(() -> "Slack send successful");
