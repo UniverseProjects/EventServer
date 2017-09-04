@@ -85,13 +85,14 @@ public class SlackCommunicationService {
     }
 
     public void handleIncomingSlack(RoutingContext context) {
-        verticle.logConnectionEvent(() -> "Processing incoming slack message: "+context.request());
+        verticle.logConnectionEvent(() -> "Processing incoming slack message");
         if(context.request().method() != HttpMethod.POST) {
             verticle.logConnectionEvent(() -> "Bad Method on slack message: "+context.request().method());
             context.response().setStatusCode(405);
             context.response().end();
             return;
         }
+        context.request().setExpectMultipart(true);
         context.request().endHandler((ignored) -> {
             MultiMap attributes = context.request().formAttributes();
             verticle.logConnectionEvent(() -> "Slack message attributes: "+attributes);
