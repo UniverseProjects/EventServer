@@ -1,11 +1,11 @@
 plugins {
-  id 'java'
-  id 'application'
-  id 'com.github.johnrengelman.shadow' version '1.2.3'
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 version = '3.4.2'
@@ -15,28 +15,28 @@ sourceCompatibility = '1.8'
 mainClassName = 'com.universeprojects.eventserver.Main'
 
 dependencies {
-  compile "io.vertx:vertx-core:$version"
-  compile "io.vertx:vertx-web:$version"
-  compile "io.vertx:vertx-web-client:$version"
-  compile "io.vertx:vertx-hazelcast:$version"
+    compile "io.vertx:vertx-core:$version"
+    compile "io.vertx:vertx-web:$version"
+    compile "io.vertx:vertx-web-client:$version"
+    compile "io.vertx:vertx-hazelcast:$version"
 }
 
 run {
-  environment("slack.channels.outgoing", '{"GLOBAL":"#upchat","slack.servers":"#servers"}')
-  systemProperties System.getProperties()
+    environment("slack.channels.outgoing", '{"GLOBAL":"#upchat","slack.servers":"#servers"}')
+    systemProperties System.getProperties()
 }
 
 shadowJar {
-  baseName = 'event-server'
-  version = null
-  //noinspection GrReassignedInClosureLocalVar
-  classifier = null
-  //noinspection GrUnresolvedAccess
-  zip64 true
+    baseName = 'event-server'
+    version = null
+    //noinspection GrReassignedInClosureLocalVar
+    classifier = null
+    //noinspection GrUnresolvedAccess
+    zip64 true
 }
 
 task wrapper(type: Wrapper) {
-  gradleVersion = '2.8'
+    gradleVersion = '2.8'
 }
 
 apply plugin: 'eclipse'
