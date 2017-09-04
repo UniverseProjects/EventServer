@@ -1,5 +1,5 @@
 node('') {
-    final String branch = "publish-only-rework"
+    final String branch = "master"
     final String composeDir = "/compose/eventserver"
     final String tag = "latest"
     final boolean testsEnabled = false
