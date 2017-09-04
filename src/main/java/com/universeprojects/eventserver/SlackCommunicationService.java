@@ -75,6 +75,7 @@ public class SlackCommunicationService {
             this.slackIncomingChannelMap = Collections.emptyMap();
         }
         this.httpClient = verticle.getVertx().createHttpClient();
+        verticle.logConnectionEvent(() -> "Started SlackService "+toString());
     }
 
     public boolean canActivateOutgoing() {
@@ -86,6 +87,7 @@ public class SlackCommunicationService {
     }
 
     public void handleIncomingSlack(RoutingContext context) {
+        verticle.logConnectionEvent(() -> "Processing incoming slack message: "+context.request());
         if(context.request().method() != HttpMethod.POST) {
             context.response().setStatusCode(405);
             context.response().end();
@@ -125,6 +127,7 @@ public class SlackCommunicationService {
             chatMessage.text = text;
             chatMessage.timestamp = new BigDecimal(timestampStr).longValue();
             chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);
+            verticle.logConnectionEvent(() -> "Publishing message from slack channel "+slackChannel+" to channel "+channel+": "+chatMessage);
             verticle.eventBus.publish(address, chatMessage);
 
             context.response().end();
@@ -159,6 +162,7 @@ public class SlackCommunicationService {
     private void setupTimer() {
         synchronized (timerLock) {
             if (timerId != null) return;
+            verticle.logConnectionEvent(() -> "Unable to acquire slack lock - setting up timer");
             timerId = verticle.getVertx().setPeriodic(FAILOVER_CHECK_TIME, (ignored) -> activate());
         }
     }
@@ -217,6 +221,7 @@ public class SlackCommunicationService {
         if(additionalFields != null) {
             attachment.put("fields", additionalFields.copy());
         }
+        verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+getClass()+": "+payload.encode());
         request.end(payload.encode());
     }
 
@@ -227,4 +232,15 @@ public class SlackCommunicationService {
         }
     }
 
+    @Override
+    public String toString() {
+        return "SlackCommunicationService{" +
+            "slackEnabled=" + slackEnabled +
+            ", slackUrl='" + slackUrl + '\'' +
+            ", slackUsername='" + slackUsername + '\'' +
+            ", slackToken='" + slackToken + '\'' +
+            ", slackOutgoingChannelMap=" + slackOutgoingChannelMap +
+            ", slackIncomingChannelMap=" + slackIncomingChannelMap +
+            '}';
+    }
 }
