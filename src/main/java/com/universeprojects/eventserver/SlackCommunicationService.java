@@ -103,8 +103,12 @@ public class SlackCommunicationService {
                 context.response().end();
                 return;
             }
-            if(slackToken.equals(token)) {
+            if(!slackToken.equals(token)) {
                 context.response().setStatusCode(403);
+                context.response().end();
+                return;
+            }
+            if(slackUsername != null && slackUsername.equals(userName)) {
                 context.response().end();
                 return;
             }
