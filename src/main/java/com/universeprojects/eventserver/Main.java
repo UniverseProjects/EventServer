@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
 import java.net.Inet6Address;
@@ -41,8 +42,9 @@ public class Main {
         });
     }
 
-    private com.hazelcast.config.Config createHazelcastConfig() {
-        com.hazelcast.config.Config hazelcastConfig = new com.hazelcast.config.Config();
+    private HazelcastClusterManager createHazelcastClusterManager() {
+        HazelcastClusterManager clusterManager = new HazelcastClusterManager();
+        com.hazelcast.config.Config hazelcastConfig = clusterManager.loadConfig();
         String hazelcastGroupName = Config.getString(CONFIG_HAZELCAST_GROUP_NAME, null);
         if (hazelcastGroupName != null) {
             hazelcastConfig.getGroupConfig().setName(hazelcastGroupName);
@@ -56,7 +58,8 @@ public class Main {
             hazelcastConfig.getManagementCenterConfig().setEnabled(true);
             hazelcastConfig.getManagementCenterConfig().setUrl(managementUrl);
         }
-        return hazelcastConfig;
+        clusterManager.setConfig(hazelcastConfig);
+        return clusterManager;
     }
 
     private void deployVerticle(Vertx vertx) {
@@ -66,8 +69,7 @@ public class Main {
     private VertxOptions createVertxOptions() {
         VertxOptions options = new VertxOptions();
         options.setClustered(true);
-        com.hazelcast.config.Config hazelCastConfig = createHazelcastConfig();
-        HazelcastClusterManager clusterManager = new HazelcastClusterManager(hazelCastConfig);
+        ClusterManager clusterManager = createHazelcastClusterManager();
         options.setClusterManager(clusterManager);
         String clusterHost = Config.getString(CONFIG_CLUSTER_HOST, null);
         if (clusterHost == null) {
