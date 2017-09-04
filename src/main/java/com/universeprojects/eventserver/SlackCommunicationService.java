@@ -87,33 +87,39 @@ public class SlackCommunicationService {
     public void handleIncomingSlack(RoutingContext context) {
         verticle.logConnectionEvent(() -> "Processing incoming slack message: "+context.request());
         if(context.request().method() != HttpMethod.POST) {
+            verticle.logConnectionEvent(() -> "Bad Method on slack message: "+context.request().method());
             context.response().setStatusCode(405);
             context.response().end();
             return;
         }
         context.request().endHandler((ignored) -> {
             MultiMap attributes = context.request().formAttributes();
+            verticle.logConnectionEvent(() -> "Slack message attributes: "+attributes);
             String token = attributes.get("token");
             String userName = attributes.get("user_name");
             String text = attributes.get("text");
             String timestampStr = attributes.get("timestamp");
             String slackChannel = attributes.get("channel_name");
             if(token == null || userName == null || text == null || slackChannel == null || timestampStr == null) {
+                verticle.logConnectionEvent(() -> "Not all required fields on slack message");
                 context.response().setStatusCode(400);
                 context.response().end();
                 return;
             }
             if(!slackToken.equals(token)) {
+                verticle.logConnectionEvent(() -> "Bad token on slack message: "+token);
                 context.response().setStatusCode(403);
                 context.response().end();
                 return;
             }
             if(slackUsername != null && slackUsername.equals(userName)) {
+                verticle.logConnectionEvent(() -> "Skipping slack user to prevent loops");
                 context.response().end();
                 return;
             }
             String channel = slackIncomingChannelMap.get(slackChannel);
             if(channel == null) {
+                verticle.logConnectionEvent(() -> "No channel defined for slack-channel "+slackChannel);
                 context.response().end();
                 return;
             }
