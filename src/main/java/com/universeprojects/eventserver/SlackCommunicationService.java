@@ -219,7 +219,7 @@ public class SlackCommunicationService {
         if(additionalFields != null) {
             attachment.put("fields", additionalFields.copy());
         }
-        verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+getClass()+": "+payload.encode());
+        verticle.logConnectionEvent(() -> "Sending message from channel "+chatMessage.channel+" to slack channel "+slackChannel+": "+payload.encode());
         client.post(slackUrl).sendJsonObject(payload, (result) ->
             verticle.logConnectionEvent(() -> "Slack send success: "+result.succeeded()));
     }
