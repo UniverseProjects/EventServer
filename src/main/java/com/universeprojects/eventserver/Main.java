@@ -21,6 +21,10 @@ public class Main {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static void main(String[] args) {
+        //No idea where this is set but it can causes an exception
+        //because its format can be invalid
+        System.clearProperty("io.netty.machineId");
+
         new Main().run(args);
     }
 

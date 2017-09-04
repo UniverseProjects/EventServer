@@ -2,12 +2,14 @@ package com.universeprojects.eventserver;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.codec.BodyCodec;
 
 import java.io.IOException;
 
@@ -27,7 +29,7 @@ public class AuthService {
     private final String authEndpoint;
     private final String headerName;
     private final String headerValue;
-    private final HttpClient client;
+    private final WebClient client;
 
     public AuthService(EventServerVerticle verticle) {
         this.verticle = verticle;
@@ -38,11 +40,13 @@ public class AuthService {
         headerName = Config.getString(CONFIG_HEADER_NAME, "api_key");
         headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
 
-        HttpClientOptions options = new HttpClientOptions().
+        WebClientOptions options = new WebClientOptions().
             setDefaultHost(host).
             setDefaultPort(port).
-            setSsl(ssl);
-        client = verticle.getVertx().createHttpClient(options);
+            setSsl(ssl).
+            setFollowRedirects(false);
+
+        client = WebClient.create(verticle.getVertx(), options);
     }
 
     public void authenticate(String token, Handler<AuthResponse> handler, Handler<Throwable> exceptionHandler) {
@@ -50,33 +54,34 @@ public class AuthService {
     }
 
     private void runAuthRequest(String token, Handler<AuthResponse> handler, Handler<Throwable> exceptionHandler, int attempt) {
-        final HttpClientRequest request = client.get(authEndpoint + "?token=" + token);
+        final HttpRequest<JsonObject> request = client
+            .get(authEndpoint)
+            .addQueryParam("token", token)
+            .as(BodyCodec.jsonObject());
         if (headerName != null && headerValue != null) {
             request.putHeader(headerName, headerValue);
         }
-        request.handler((response) -> {
-            if (response.statusCode() == HttpResponseStatus.OK.code()) {
-                response.bodyHandler((buffer) -> {
-                    final AuthResponse authResponse;
-                    try {
-                        final JsonObject json = buffer.toJsonObject();
-                        authResponse = AuthResponse.fromJson(json);
-                    } catch (Exception ex) {
-                        exceptionHandler.handle(ex);
-                        return;
-                    }
+
+        request.send((result) -> {
+            if (result.succeeded()) {
+                HttpResponse<JsonObject> response = result.result();
+                if (response.statusCode() == HttpResponseStatus.OK.code()) {
+                    final JsonObject json = response.body();
+                    final AuthResponse authResponse = AuthResponse.fromJson(json);
                     handler.handle(authResponse);
-                });
-            } else {
-                if (attempt < MAX_ATTEMPTS) {
-                    runAuthRequest(token, handler, exceptionHandler, attempt + 1);
-                    log.warn("Auth-attempt returned status code "+response.statusCode()+" - retrying (attmpt "+attempt+")");
                 } else {
-                    exceptionHandler.handle(new IOException("Bad status code "+response.statusCode()+" in auth response after " + attempt + " attempts - giving up"));
+                    if (attempt < MAX_ATTEMPTS) {
+                        runAuthRequest(token, handler, exceptionHandler, attempt + 1);
+                        log.warn("Auth-attempt returned status code " + response.statusCode() +
+                            " - retrying (attmpt " + attempt + ")");
+                    } else {
+                        exceptionHandler.handle(new IOException("Bad status code " +
+                            response.statusCode() + " in auth response after " + attempt + " attempts - giving up"));
+                    }
                 }
+            } else {
+                exceptionHandler.handle(result.cause());
             }
         });
-        request.exceptionHandler(exceptionHandler);
-        request.end();
     }
 }
