@@ -29,6 +29,7 @@ public class SlackCommunicationService {
     public static final String DATA_AUTHOR_LINK = "slackAuthorLink";
     public static final String DATA_AUTHOR_COLOR = "slackAuthorColor";
     public static final String DATA_ADDITIONAL_FIELDS = "slackAdditionalFields";
+    public static final String USER_SLACKBOT = "slackbot";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -95,7 +96,14 @@ public class SlackCommunicationService {
         context.request().setExpectMultipart(true);
         context.request().endHandler((ignored) -> {
             MultiMap attributes = context.request().formAttributes();
-            verticle.logConnectionEvent(() -> "Slack message attributes: "+attributes);
+            verticle.logConnectionEvent(() -> {
+                JsonArray formJson = new JsonArray();
+                for(Map.Entry<String, String> entry : attributes.entries()) {
+                    JsonObject json = new JsonObject().put("key", entry.getKey()).put("val", entry.getValue());
+                    formJson.add(json);
+                }
+                return "Slack message attributes: "+formJson.encode();
+            });
             String token = attributes.get("token");
             String userName = attributes.get("user_name");
             String text = attributes.get("text");
@@ -113,8 +121,13 @@ public class SlackCommunicationService {
                 context.response().end();
                 return;
             }
-            if(slackUsername != null && slackUsername.equals(userName)) {
-                verticle.logConnectionEvent(() -> "Skipping slack user to prevent loops");
+            if(USER_SLACKBOT.equals(userName)) {
+                verticle.logConnectionEvent(() -> "Skipping bots");
+                context.response().end();
+                return;
+            }
+            if(text.isEmpty()) {
+                verticle.logConnectionEvent(() -> "Skipping empty text");
                 context.response().end();
                 return;
             }
