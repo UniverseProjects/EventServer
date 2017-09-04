@@ -53,29 +53,29 @@ In PROD-Mode (default) only the REST- and SockJS-endpoints are active.
 * Only one server in the cluster can send slack-messages. This is done automatically. Failover checks happen every 60s.
 
 
-## Config-options
+## Config-Options
  Option                   | Type/Values         | Default value | Description
 --------------------------|---------------------|---------------|---------------
-cluster.host              |String               |null           |Address of this machine. Might be required in case of multiple interfaces
+cluster.host              |String               |               |Address of this machine. Might be required in case of multiple interfaces
 hazelcast.group.name      |String               |dev            |Hazelcast group
 hazelcast.group.password  |String               |dev-pass       |Hazelcast group password
-hazelcast.management.url  |String               |null           |URL of a Hazelcast management-server
+hazelcast.management.url  |String               |               |URL of a Hazelcast management-server
 server.mode               |PROD/TEST/TEST_CLIENT|PROD           |Mode the server runs in. TEST/TEST_CLIENT provide the index.html. TEST_CLIENT mocks the authentication
 server.port               |int                  |6969           |THe port the server runs on
 cors.origins              |String               |*              |CORS header origin to use. Can be set more strictly for better security
 log.connections           |boolean              |false          |Activate connection-logging. This can produce a lot of log-entries
 channel.history.size      |int                  |200            |Amount of entries to keep per channel. These entries are sent to a client on connection.
 api.header.name           |String               |api_key        |Header-Name for the API-Key for the /send endpoint
-api.header.value          |String               |null           |Heaver-Value for the API-Key for the /send endpoint
+api.header.value          |String               |               |Heaver-Value for the API-Key for the /send endpoint
 remote.host               |String               |localhost      |Hostname of the application-server with a chatAuth endpoint
 remote.port               |int                  |8886           |Port of the application-server
 remote.ssl                |boolean              |false          |If true the event-server will use HTTPS to connect to the application-server
 remote.auth.endpoint      |String               |/chatAuth      |Name of the chatAuth-endpoint
 remote.api.header.name    |String               |api_key        |Header-Name for the API-Key for the chatAuth endpoint on the application-server
-remote.api.header.value   |String               |null           |Header-Value for the API-Key for the chatAuth endpoint on the application-server
+remote.api.header.value   |String               |               |Header-Value for the API-Key for the chatAuth endpoint on the application-server
 slack.enabled             |boolean              |false          |Enables slack integration
-slack.url                 |String               |null           |URL to a slack incoming-webhook
-slack.channels.incoming   |JsonObject           |null           |Map Slack-Channel -> EventServer-Channel
-slack.channels.outgoing   |JsonObject           |null           |Map Event-Server-Channel -> Slack-Channel
-slack.username            |String               |null           |Username to use for sending messages to a slack incoming-webhook
-slack.token               |String               |null           |Token that the event-server can use to authenticate a slack outgoing-webhook
+slack.url                 |String               |               |URL to a slack incoming-webhook
+slack.channels.incoming   |JsonObject           |               |Map Slack-Channel -> EventServer-Channel
+slack.channels.outgoing   |JsonObject           |               |Map Event-Server-Channel -> Slack-Channel
+slack.username            |String               |               |Username to use for sending messages to a slack incoming-webhook
+slack.token               |String               |               |Token that the event-server can use to authenticate a slack outgoing-webhook
