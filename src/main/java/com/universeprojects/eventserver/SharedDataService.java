@@ -21,7 +21,7 @@ public class SharedDataService {
     }
 
     public void getSlackLock(Handler<AsyncResult<Lock>> handler) {
-        sd.getLockWithTimeout("slack", 5 * 1000, handler);
+        sd.getLock("slack", handler);
     }
 
     public LocalMap<String, User> getSessionToUserMap() {
