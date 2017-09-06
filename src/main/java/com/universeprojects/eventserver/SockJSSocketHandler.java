@@ -24,6 +24,7 @@ import java.util.function.BiConsumer;
 public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     public static final String PARAM_TOKEN = "token";
+    public static final String PARAM_FETCH_OLD_MESSAGES = "fetchOldMessages";
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String TOKEN_ANONYMOUS = "anonymous";
@@ -42,23 +43,21 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         String uri = socket.uri();
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(uri);
         Map<String, List<String>> params = queryStringDecoder.parameters();
-        List<String> paramTokenValues = params.get(PARAM_TOKEN);
-        final String token;
-        if (paramTokenValues != null && paramTokenValues.size() == 1 && !paramTokenValues.get(0).isEmpty()) {
-            token = paramTokenValues.get(0);
-        } else {
-            token = TOKEN_ANONYMOUS;
-        }
+        final String token = extractParam(params, PARAM_TOKEN, TOKEN_ANONYMOUS);
+        final boolean fetchOldMessages = Boolean.valueOf(extractParam(params, PARAM_FETCH_OLD_MESSAGES, Boolean.TRUE.toString()));
+
 
         verticle.logConnectionEvent(() -> "Established connection on " + socket.localAddress() + " to client " + socket.remoteAddress());
 
         final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
                 updateChannels(newUser, channels, (added) -> {
-                    findOldMessages(channels, (channel, messages) -> {
-                        verticle.logConnectionEvent(() -> "Sending old messages for channel "+channel+" to user " + user);
-                        ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                        send(socket, envelope);
-                    });
+                    if(fetchOldMessages) {
+                        findOldMessages(channels, (channel, messages) -> {
+                            verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
+                            ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                            send(socket, envelope);
+                        });
+                    }
                     setupSocket(socket, newUser, token);
                 });
 
@@ -70,6 +69,17 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else {
             executeAuthentication(socket, user, token, onSuccess);
         }
+    }
+
+    private String extractParam(Map<String, List<String>> params, String key, String defaultValue) {
+        List<String> values = params.get(key);
+        final String token;
+        if (values != null && values.size() == 1 && !values.get(0).isEmpty()) {
+            token = values.get(0);
+        } else {
+            token = defaultValue;
+        }
+        return token;
     }
 
     private void executeAuthentication(SockJSSocket socket, User user, String token, BiConsumer<User, Set<String>> onSuccess) {

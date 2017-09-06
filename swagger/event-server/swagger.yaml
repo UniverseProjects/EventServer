@@ -20,6 +20,11 @@ paths:
           type: string
           description: Chat-Authentication token
           required: true
+        - name: fetchOldMessages
+          in: query
+          type: boolean
+          description: Should old messages be sent to the client
+          default: true
       responses:
         '200':
           description: OK
