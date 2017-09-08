@@ -53,6 +53,27 @@ In PROD-Mode (default) only the REST- and SockJS-endpoints are active.
 * Only one server in the cluster can send slack-messages. This is done automatically. Failover checks happen every 60s.
 
 
+## Message-Format
+#### Example for a message frame received on SockJS
+```json
+{
+    "error": "Error message, only in the frame if an error occured",
+    "messages": [
+        {
+            "senderUserId": "sender01",
+            "senderDisplayName": "Mr Sender",
+            "channel": "public",
+            "text": "The text of the message",
+            "timestamp": 1200000,
+            "additionalData": {}
+        }
+    ]
+}
+```
+#### Other
+See [event-server swagger.yaml file](swagger/event-server/swagger.yaml)
+
+
 ## Config-Options
  Option                   | Type/Values         | Default value | Description
 --------------------------|---------------------|---------------|---------------
