@@ -142,7 +142,14 @@ public class EventServerVerticle extends AbstractVerticle {
                             list.subList(list.size() - channelHistorySize, list.size())
                         );
                     }
-                    map.put(channel, new JsonArray(list), null);
+                    final JsonArray newJson = new JsonArray(list);
+                    map.put(channel, newJson, (putResult) -> {
+                        if(putResult.succeeded()) {
+                            logConnectionEvent(() -> "Successfully stored messages: "+newJson.encode());
+                        } else {
+                            log.warn("Error storing messages", putResult.cause());
+                        }
+                    });
                 });
             } else {
                 log.warn("Error getting message-map", mapResult.cause());
