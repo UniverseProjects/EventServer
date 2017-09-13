@@ -17,7 +17,7 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final InputStream stream = getClass().getResourceAsStream("build.properties");
+        final InputStream stream = getClass().getResourceAsStream("/build.properties");
         Buffer buffer = Buffer.buffer();
         if(stream != null) {
             Properties properties = new Properties();
