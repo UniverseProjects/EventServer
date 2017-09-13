@@ -4,8 +4,11 @@ package com.universeprojects.eventserver;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -15,6 +18,8 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class EventServerVerticle extends AbstractVerticle {
@@ -25,6 +30,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public static final String CONFIG_PORT = "server.port";
     public static final String CONFIG_CORS_ORIGINS = "cors.origins";
     public static final String CONFIG_LOG_CONNECTIONS = "log.connections";
+    public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
 
     public enum ServerMode {
         PROD, TEST, TEST_CLIENT
@@ -38,6 +44,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
     private boolean logConnections = false;
+    private int channelHistorySize = 200;
 
     @Override
     public void start() {
@@ -45,6 +52,7 @@ public class EventServerVerticle extends AbstractVerticle {
         String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
         int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
+        channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, 200);
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
 
@@ -111,5 +119,34 @@ public class EventServerVerticle extends AbstractVerticle {
         if(shouldLogConnections()) {
             log.info(messageSupplier.get());
         }
+    }
+
+    public void storeMessages(String channel, List<ChatMessage> messages) {
+        sharedDataService.getMessageMap((mapResult) -> {
+            if(mapResult.succeeded()) {
+                final AsyncMap<String, JsonArray> map = mapResult.result();
+                map.get(channel, (result) -> {
+                    List<JsonObject> list;
+                    if (result.succeeded() && result.result() != null) {
+                        //noinspection unchecked
+                        list = result.result().getList();
+                    } else {
+                        list = new ArrayList<>();
+                    }
+
+                    for (ChatMessage message : messages) {
+                        list.add(ChatMessageCodec.INSTANCE.toJson(message));
+                    }
+                    if (list.size() > channelHistorySize) {
+                        list = new ArrayList<>(
+                            list.subList(list.size() - channelHistorySize, list.size())
+                        );
+                    }
+                    map.put(channel, new JsonArray(list), null);
+                });
+            } else {
+                log.warn("Error getting message-map", mapResult.cause());
+            }
+        });
     }
 }

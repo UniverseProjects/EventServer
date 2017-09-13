@@ -155,6 +155,7 @@ public class SlackCommunicationService {
             chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);
             verticle.logConnectionEvent(() -> "Publishing message from slack channel "+slackChannel+" to channel "+channel+": "+chatMessage);
             verticle.eventBus.publish(address, chatMessage);
+            verticle.storeMessages(channel, Collections.singletonList(chatMessage));
 
             context.response().end();
         });
