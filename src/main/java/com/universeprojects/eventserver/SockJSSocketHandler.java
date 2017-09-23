@@ -66,7 +66,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             AuthResponse authResponse = new AuthResponse(true, "test");
             authResponse.channels.add("public");
             authResponse.channels.add("group.test");
-            onAuthSuccess(user, authResponse, onSuccess);
+            onAuthSuccess(user, socket, authResponse, onSuccess);
         } else {
             executeAuthentication(socket, user, token, onSuccess);
         }
@@ -88,7 +88,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         verticle.authService.authenticate(token, (authResponse) -> {
             verticle.logConnectionEvent(() -> "Authentication for connection "+socket.remoteAddress()+": "+authResponse.success);
             if (authResponse.success) {
-                onAuthSuccess(user, authResponse, onSuccess);
+                onAuthSuccess(user, socket, authResponse, onSuccess);
             } else {
                 onAuthError(socket, "Authentication failed");
             }
@@ -98,17 +98,23 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         });
     }
 
-    private void onAuthSuccess(final User sessionUser, final AuthResponse authResponse, BiConsumer<User, Set<String>> onSuccess) {
+    private void onAuthSuccess(final User sessionUser, final SockJSSocket socket, final AuthResponse authResponse, BiConsumer<User, Set<String>> onSuccess) {
         final User user;
         if (sessionUser == null) {
             user = new User(authResponse.userId);
             setupUser(user);
             verticle.logConnectionEvent(() -> "New user connected: "+user);
+        } else if(!sessionUser.userId.equals(authResponse.userId)) {
+            onDisconnect(socket, sessionUser);
+            user = new User(authResponse.userId);
+            setupUser(user);
+            verticle.logConnectionEvent(() -> "User identity changed from "+sessionUser+" to "+user);
         } else {
             user = sessionUser;
             verticle.logConnectionEvent(() -> "User connected again: "+user);
         }
-        user.connectionCounter.incrementAndGet();
+        long newCount = user.connectionCounter.incrementAndGet();
+        verticle.logConnectionEvent(() -> "User "+user+" sconnected. "+newCount+" connections active");
         if (onSuccess != null) {
             onSuccess.accept(user, authResponse.channels);
         }
@@ -285,8 +291,10 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private void onDisconnect(SockJSSocket socket, User user) {
         long newCount = user.connectionCounter.decrementAndGet();
-        verticle.logConnectionEvent(() -> "User "+user+" disconnected. "+newCount+" connections left");
+        verticle.logConnectionEvent(() -> "User "+user+" disconnected. "+newCount+" connections active");
         if(newCount <= 0) {
+            verticle.logConnectionEvent(() -> "Last connection removed. Cleaning up user "+user);
+            verticle.sharedDataService.getSessionToUserMap().remove(socket.webSession().id());
             user.getChannelConsumers((map) -> {
                 Map<String, MessageConsumer<ChatMessage>> consumers = new LinkedHashMap<>(map);
                 for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : consumers.entrySet()) {
