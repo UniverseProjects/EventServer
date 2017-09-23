@@ -151,7 +151,7 @@ public class SlackCommunicationService {
             chatMessage.senderDisplayName = userName;
             chatMessage.senderId = "slack:"+slackChannel;
             chatMessage.text = text;
-            chatMessage.timestamp = new BigDecimal(timestampStr).longValue();
+            chatMessage.timestamp = new BigDecimal(timestampStr).multiply(BigDecimal.valueOf(1000)).longValue();
             chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);
             verticle.logConnectionEvent(() -> "Publishing message from slack channel "+slackChannel+" to channel "+channel+": "+chatMessage);
             verticle.eventBus.publish(address, chatMessage);
