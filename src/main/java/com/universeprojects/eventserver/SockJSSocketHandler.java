@@ -15,6 +15,7 @@ import io.vertx.ext.web.Session;
 import io.vertx.ext.web.handler.sockjs.SockJSSocket;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -130,9 +131,14 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
 
             for (String channel : removedChannels) {
-                final MessageConsumer<ChatMessage> consumer = map.remove(channel);
-                consumer.unregister();
-                map.remove(channel);
+                final MessageConsumer<ChatMessage> consumer = map.get(channel);
+                consumer.unregister((result) -> {
+                    if (result.succeeded()) {
+                        user.getChannelConsumers(mapForRemoval -> mapForRemoval.remove(channel));
+                    } else {
+                        log.error("Error unregistering channel handler on channel " + channel + " for user " + user, result.cause());
+                    }
+                });
             }
 
             for (String channel : addedChannels) {
@@ -281,11 +287,17 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         long newCount = user.connectionCounter.decrementAndGet();
         if(newCount <= 0) {
             user.getChannelConsumers((map) -> {
-                for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : map.entrySet()) {
+                Map<String, MessageConsumer<ChatMessage>> consumers = new LinkedHashMap<>(map);
+                for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : consumers.entrySet()) {
                     verticle.logConnectionEvent(() -> "Unregistering channel handler on channel " + entry.getKey() + " for user " + user);
-                    entry.getValue().unregister();
+                    entry.getValue().unregister((result) -> {
+                        if (result.succeeded()) {
+                            user.getChannelConsumers(mapForRemoval -> mapForRemoval.remove(entry.getKey()));
+                        } else {
+                            log.error("Error unregistering channel handler on channel " + entry.getKey() + " for user " + user, result.cause());
+                        }
+                    });
                 }
-                map.clear();
             });
         }
         final LocalMap<String, JsonArray> localSocketMap = verticle.sharedDataService.getLocalSocketMap();
