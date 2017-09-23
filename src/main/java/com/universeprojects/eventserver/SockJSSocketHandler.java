@@ -285,6 +285,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private void onDisconnect(SockJSSocket socket, User user) {
         long newCount = user.connectionCounter.decrementAndGet();
+        verticle.logConnectionEvent(() -> "User "+user+" disconnected. "+newCount+" connections left");
         if(newCount <= 0) {
             user.getChannelConsumers((map) -> {
                 Map<String, MessageConsumer<ChatMessage>> consumers = new LinkedHashMap<>(map);
