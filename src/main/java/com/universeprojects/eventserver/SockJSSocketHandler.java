@@ -140,7 +140,12 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 final MessageConsumer<ChatMessage> consumer = map.get(channel);
                 consumer.unregister((result) -> {
                     if (result.succeeded()) {
-                        user.getChannelConsumers(mapForRemoval -> mapForRemoval.remove(channel));
+                        user.getChannelConsumers(mapForRemoval -> {
+                            final MessageConsumer<ChatMessage> consumerToRemove = mapForRemoval.get(channel);
+                            if (consumerToRemove == consumer) {
+                                mapForRemoval.remove(channel);
+                            }
+                        });
                     } else {
                         log.error("Error unregistering channel handler on channel " + channel + " for user " + user, result.cause());
                     }
@@ -299,9 +304,15 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 Map<String, MessageConsumer<ChatMessage>> consumers = new LinkedHashMap<>(map);
                 for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : consumers.entrySet()) {
                     verticle.logConnectionEvent(() -> "Unregistering channel handler on channel " + entry.getKey() + " for user " + user);
-                    entry.getValue().unregister((result) -> {
+                    final MessageConsumer<ChatMessage> consumer = entry.getValue();
+                    consumer.unregister((result) -> {
                         if (result.succeeded()) {
-                            user.getChannelConsumers(mapForRemoval -> mapForRemoval.remove(entry.getKey()));
+                            user.getChannelConsumers(mapForRemoval -> {
+                                final MessageConsumer<ChatMessage> consumerToRemove = mapForRemoval.get(entry.getKey());
+                                if (consumerToRemove == consumer) {
+                                    mapForRemoval.remove(entry.getKey());
+                                }
+                            });
                         } else {
                             log.error("Error unregistering channel handler on channel " + entry.getKey() + " for user " + user, result.cause());
                         }
