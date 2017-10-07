@@ -26,7 +26,8 @@ In PROD-Mode (default) only the REST- and SockJS-endpoints are active.
 * The url for the SockJS-client points to the event-servers /socket endpoint and contains a *token* query-parameter. e.g. ```http://eventserver.domain.com/socket?token=TOKEN```
 * The event-server accepts the websocket-connection and sends a GET request with the token to the application-server's ```/authChat``` endpoint
 * The application-server responds with the user-id for the token and the list of channels the user belongs to
-* The event-server sends the last 200 channel-messages (configurable) to the user and is set up to send him future messages
+* The event-server sends the last 200 channel-messages (configurable) to the user unless the channel-name starts with an ```!```
+* The channel is set up to send the user future messages
 * The definition of the ```/chatAuth``` endpoint can be found in the [auth-server swagger.yaml file](swagger/auth-server/swagger.yaml)
 
 #### Sending

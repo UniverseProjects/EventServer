@@ -182,11 +182,12 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private void findOldMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        if(channelNames.isEmpty()) return;
+        if(channelNames.isEmpty() || !channelNames.stream().anyMatch(verticle::shouldStoreMessages)) return;
         verticle.sharedDataService.getMessageMap((mapResult) -> {
             if (mapResult.succeeded()) {
                 final AsyncMap<String, JsonArray> map = mapResult.result();
                 for (String channel : channelNames) {
+                    if(!verticle.shouldStoreMessages(channel)) continue;
                     map.get(channel, (result) -> {
                         if (result.succeeded() && result.result() != null) {
                             final JsonArray jsonArray = result.result();

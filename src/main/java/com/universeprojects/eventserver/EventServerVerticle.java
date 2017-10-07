@@ -123,6 +123,9 @@ public class EventServerVerticle extends AbstractVerticle {
     }
 
     public void storeMessages(String channel, List<ChatMessage> messages) {
+        if(!shouldStoreMessages(channel)) {
+            return;
+        }
         sharedDataService.getMessageMap((mapResult) -> {
             if(mapResult.succeeded()) {
                 final AsyncMap<String, JsonArray> map = mapResult.result();
@@ -156,5 +159,9 @@ public class EventServerVerticle extends AbstractVerticle {
                 log.warn("Error getting message-map", mapResult.cause());
             }
         });
+    }
+
+    public boolean shouldStoreMessages(String channel) {
+        return !channel.startsWith("!");
     }
 }
