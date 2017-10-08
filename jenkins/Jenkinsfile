@@ -88,5 +88,6 @@ node('') {
         } else {
             echo "Skipping deploy"
         }
+        slackSend color: "danger", message: "${env.JOB_NAME} - #${env.BUILD_NUMBER} - 'Build' successful"
     }
 }
