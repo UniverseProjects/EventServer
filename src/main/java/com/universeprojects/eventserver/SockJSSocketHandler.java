@@ -114,7 +114,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             verticle.logConnectionEvent(() -> "User connected again: "+user);
         }
         long newCount = user.connectionCounter.incrementAndGet();
-        verticle.logConnectionEvent(() -> "User "+user+" sconnected. "+newCount+" connections active");
+        verticle.logConnectionEvent(() -> "User "+user+" connected. "+newCount+" connections active");
         if (onSuccess != null) {
             onSuccess.accept(user, authResponse.channels);
         }
