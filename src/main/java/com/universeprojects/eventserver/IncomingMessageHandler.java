@@ -82,9 +82,9 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                     verticle.logConnectionEvent(() -> "Processing direct message for user " + userId + ": " + chatMessage.text);
                 }
             }
+            final ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
+            final Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
             verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
-                ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
-                Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
                 for (String writerId : writerIds) {
                     verticle.eventBus.publish(writerId, buffer);
                 }
