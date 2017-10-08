@@ -101,10 +101,17 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     private void onAuthSuccess(final User sessionUser, final SockJSSocket socket, final AuthResponse authResponse, BiConsumer<User, Set<String>> onSuccess) {
         final User user;
         if (sessionUser == null) {
-            user = new User(authResponse.userId);
-            setupUser(user);
-            verticle.logConnectionEvent(() -> "New user connected: "+user);
+            final User mapUser = verticle.sharedDataService.getUserIdToUserMap().get(authResponse.userId);
+            if(mapUser != null) {
+                user = mapUser;
+                verticle.logConnectionEvent(() -> "User connected again with a new session: "+user);
+            } else {
+                user = new User(authResponse.userId);
+                setupUser(user);
+                verticle.logConnectionEvent(() -> "New user connected: "+user);
+            }
         } else if(!sessionUser.userId.equals(authResponse.userId)) {
+            verticle.sharedDataService.getUserIdToUserMap().remove(sessionUser.userId);
             onDisconnect(socket, sessionUser);
             user = new User(authResponse.userId);
             setupUser(user);
@@ -223,6 +230,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private void setupSocket(SockJSSocket socket, User user, String token) {
         verticle.sharedDataService.getSessionToUserMap().put(socket.webSession().id(), user);
+        verticle.sharedDataService.getUserIdToUserMap().put(user.userId, user);
         verticle.sharedDataService.getGlobalSocketMap((mapResult) -> {
             if (mapResult.succeeded()) {
                 verticle.logConnectionEvent(() -> "Registering socket "+socket.writeHandlerID()+" for user " + user);
@@ -301,6 +309,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         if(newCount <= 0) {
             verticle.logConnectionEvent(() -> "Last connection removed. Cleaning up user "+user);
             verticle.sharedDataService.getSessionToUserMap().remove(socket.webSession().id());
+            verticle.sharedDataService.getUserIdToUserMap().remove(user.userId);
             user.getChannelConsumers((map) -> {
                 Map<String, MessageConsumer<ChatMessage>> consumers = new LinkedHashMap<>(map);
                 for (Map.Entry<String, MessageConsumer<ChatMessage>> entry : consumers.entrySet()) {

@@ -28,6 +28,10 @@ public class SharedDataService {
         return sd.<String, User>getLocalMap("sessionUsers");
     }
 
+    public LocalMap<String, User> getUserIdToUserMap() {
+        return sd.<String, User>getLocalMap("users");
+    }
+
     public void getGlobalSocketMap(Handler<AsyncResult<AsyncMap<String, JsonArray>>> resultHandler) {
         sd.getClusterWideMap("sockets.global", resultHandler);
     }
