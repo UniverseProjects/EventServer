@@ -86,6 +86,7 @@ server.mode               |PROD/TEST/TEST_CLIENT|PROD           |Mode the server
 server.port               |int                  |6969           |THe port the server runs on
 cors.origins              |String               |*              |CORS header origin to use. Can be set more strictly for better security
 log.connections           |boolean              |false          |Activate connection-logging. This can produce a lot of log-entries
+log.storage               |boolean              |false          |Activate storage-logging. This can produce a lot of very long log-entries
 channel.history.size      |int                  |200            |Amount of entries to keep per channel. These entries are sent to a client on connection.
 api.header.name           |String               |api_key        |Header-Name for the API-Key for the /send endpoint
 api.header.value          |String               |               |Heaver-Value for the API-Key for the /send endpoint

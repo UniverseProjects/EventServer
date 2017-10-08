@@ -30,6 +30,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public static final String CONFIG_PORT = "server.port";
     public static final String CONFIG_CORS_ORIGINS = "cors.origins";
     public static final String CONFIG_LOG_CONNECTIONS = "log.connections";
+    public static final String CONFIG_LOG_STORAGE = "log.storage";
     public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
 
     public enum ServerMode {
@@ -44,11 +45,13 @@ public class EventServerVerticle extends AbstractVerticle {
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
     private boolean logConnections = false;
+    private boolean logStorage = false;
     private int channelHistorySize = 200;
 
     @Override
     public void start() {
         logConnections = Config.getBoolean(CONFIG_LOG_CONNECTIONS, false);
+        logStorage = Config.getBoolean(CONFIG_LOG_STORAGE, false);
         String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
         int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
@@ -116,8 +119,18 @@ public class EventServerVerticle extends AbstractVerticle {
         return logConnections;
     }
 
+    public boolean shouldLogStorage() {
+        return logStorage;
+    }
+
     public void logConnectionEvent(Supplier<String> messageSupplier) {
         if(shouldLogConnections()) {
+            log.info(messageSupplier.get());
+        }
+    }
+
+    public void logStorageEvent(Supplier<String> messageSupplier) {
+        if(shouldLogStorage()) {
             log.info(messageSupplier.get());
         }
     }
@@ -149,7 +162,7 @@ public class EventServerVerticle extends AbstractVerticle {
                     final JsonArray newJson = new JsonArray(list);
                     map.put(channel, newJson, (putResult) -> {
                         if(putResult.succeeded()) {
-                            logConnectionEvent(() -> "Successfully stored messages: "+newJson.encode());
+                            logStorageEvent(() -> "Successfully stored messages: "+newJson.encode());
                         } else {
                             log.warn("Error storing messages", putResult.cause());
                         }
