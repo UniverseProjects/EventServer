@@ -16,6 +16,8 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SlackCommunicationService {
     public static final String CONFIG_SLACK_ENABLED = "slack.enabled";
@@ -24,6 +26,7 @@ public class SlackCommunicationService {
     public static final String CONFIG_SLACK_CHANNELS_OUTGOING = "slack.channels.outgoing";
     public static final String CONFIG_SLACK_USERNAME = "slack.username";
     public static final String CONFIG_SLACK_TOKEN = "slack.token";
+    public static final String CONFIG_SLACK_PROCESS_HTML = "slack.process.html";
     public static final int FAILOVER_CHECK_TIME = 60 * 1000;
     public static final String DATA_MARKER_FROM_SLACK = "__fromSlack";
     public static final String DATA_AUTHOR_LINK = "slackAuthorLink";
@@ -44,6 +47,7 @@ public class SlackCommunicationService {
     private final Object timerLock = new Object();
     private Lock instanceLock;
     private Long timerId;
+    private boolean processHtml;
 
     public SlackCommunicationService(EventServerVerticle verticle) {
         this.verticle = verticle;
@@ -51,6 +55,7 @@ public class SlackCommunicationService {
         this.slackUrl = Config.getString(CONFIG_SLACK_URL, null);
         this.slackUsername = Config.getString(CONFIG_SLACK_USERNAME, null);
         this.slackToken = Config.getString(CONFIG_SLACK_TOKEN, null);
+        this.processHtml = Config.getBoolean(CONFIG_SLACK_PROCESS_HTML, false);
         String outgoingChannelsStr = Config.getString(CONFIG_SLACK_CHANNELS_OUTGOING, null);
         if(outgoingChannelsStr != null) {
             Map<String, String> map = new LinkedHashMap<>();
@@ -232,6 +237,11 @@ public class SlackCommunicationService {
             authorColor = additionalData.getString(DATA_AUTHOR_COLOR);
             additionalFields = additionalData.getJsonArray(DATA_ADDITIONAL_FIELDS);
         }
+
+        String text = processText(chatMessage.text, processHtml);
+        String fallbackText = processText(chatMessage.text, false);
+
+
         JsonObject payload = new JsonObject();
         String channel;
         if(slackChannel.startsWith("#")) {
@@ -246,11 +256,14 @@ public class SlackCommunicationService {
 
         JsonObject attachment = new JsonObject();
         attachments.add(attachment);
-        putIfNotNull(attachment, "fallback", chatMessage.text);
-        putIfNotNull(attachment, "text", chatMessage.text);
+        putIfNotNull(attachment, "fallback", fallbackText);
+        putIfNotNull(attachment, "text", text);
         putIfNotNull(attachment, "author_name", chatMessage.senderDisplayName);
         putIfNotNull(attachment, "author_link", authorLink);
         putIfNotNull(attachment, "color", authorColor);
+        if(processHtml) {
+            attachment.put("mrkdwn_in", new JsonArray().add("text"));
+        }
         if(additionalFields != null) {
             attachment.put("fields", additionalFields.copy());
         }
@@ -264,6 +277,71 @@ public class SlackCommunicationService {
         });
     }
 
+    private final Pattern linkPattern = Pattern.compile("<\\s*a\\s+href=\"([^\"]*)\"\\s*>([^<]+)<\\/a\\s*>");
+    private final Pattern boldPattern = Pattern.compile("<\\s*b\\s*>([^<]+)<\\/b\\s*>");
+    private final Pattern strongPattern = Pattern.compile("<\\s*strong\\s*>([^<]+)<\\/strong\\s*>");
+    private final Pattern italicPattern = Pattern.compile("<\\s*i\\s*>([^<]+)<\\/i\\s*>");
+    private final Pattern emPattern = Pattern.compile("<\\s*em\\s*>([^<]+)<\\/em\\s*>");
+
+    private String processText(final String str, final boolean translateHtml) {
+        String text = str;
+        final Matcher linkMatcher = linkPattern.matcher(text);
+        if(translateHtml) {
+            text = linkMatcher.replaceAll("!!l!!$1|$2!!g!!");
+        } else {
+            text = linkMatcher.replaceAll("$2");
+        }
+
+        final Matcher boldMatcher = boldPattern.matcher(text);
+        if(translateHtml) {
+            text = boldMatcher.replaceAll("*$2*");
+        } else {
+            text = boldMatcher.replaceAll("$2");
+        }
+
+        final Matcher strongMatcher = strongPattern.matcher(text);
+        if(translateHtml) {
+            text = strongMatcher.replaceAll("*$1*");
+        } else {
+            text = strongMatcher.replaceAll("$1");
+        }
+
+        final Matcher italicMatcher = italicPattern.matcher(text);
+        if(translateHtml) {
+            text = italicMatcher.replaceAll("_$1_");
+        } else {
+            text = italicMatcher.replaceAll("$1");
+        }
+
+        final Matcher emMatcher = emPattern.matcher(text);
+        if(translateHtml) {
+            text = emMatcher.replaceAll("_$1_");
+        } else {
+            text = emMatcher.replaceAll("$1");
+        }
+
+        if(translateHtml) {
+            text = text.replaceAll("<\\s*br\\s*/?>", "\\n");
+        } else {
+            text = text.replaceAll("<\\s*br\\s*/?>", "");
+        }
+
+        text = escapeForSlack(text);
+
+        if(processHtml) {
+            text = text.replaceAll("!!l!!", "<");
+            text = text.replaceAll("!!g!!", ">");
+        }
+
+        return text;
+    }
+
+    private String escapeForSlack(String str) {
+        return str.
+            replaceAll("&", "%amp;").
+            replaceAll("<", "&lt;").
+            replaceAll(">","&gt;");
+    }
 
     private static void putIfNotNull(JsonObject object, String key, String data) {
         if(data != null) {
