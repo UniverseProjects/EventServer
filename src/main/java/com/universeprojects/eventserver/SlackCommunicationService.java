@@ -294,9 +294,9 @@ public class SlackCommunicationService {
 
         final Matcher boldMatcher = boldPattern.matcher(text);
         if(translateHtml) {
-            text = boldMatcher.replaceAll("*$2*");
+            text = boldMatcher.replaceAll("*$1*");
         } else {
-            text = boldMatcher.replaceAll("$2");
+            text = boldMatcher.replaceAll("$1");
         }
 
         final Matcher strongMatcher = strongPattern.matcher(text);
