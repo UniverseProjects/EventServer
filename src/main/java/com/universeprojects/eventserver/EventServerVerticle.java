@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
+import io.vertx.core.shareddata.Lock;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -139,37 +140,46 @@ public class EventServerVerticle extends AbstractVerticle {
         if(!shouldStoreMessages(channel)) {
             return;
         }
-        sharedDataService.getMessageMap((mapResult) -> {
-            if (mapResult.succeeded()) {
-                final AsyncMap<String, JsonArray> map = mapResult.result();
-                map.get(channel, (result) -> {
-                    List<JsonObject> list;
-                    if (result.succeeded() && result.result() != null) {
-                        //noinspection unchecked
-                        list = result.result().getList();
-                    } else {
-                        list = new ArrayList<>();
-                    }
+        sharedDataService.getMessageMapLock((lockResult) -> {
+            if(lockResult.succeeded()) {
+                Lock lock = lockResult.result();
+                sharedDataService.getMessageMap((mapResult) -> {
+                    if (mapResult.succeeded()) {
+                        final AsyncMap<String, JsonArray> map = mapResult.result();
+                        map.get(channel, (result) -> {
+                            List<JsonObject> list;
+                            if (result.succeeded() && result.result() != null) {
+                                //noinspection unchecked
+                                list = result.result().getList();
+                            } else {
+                                list = new ArrayList<>();
+                            }
 
-                    for (ChatMessage message : messages) {
-                        list.add(ChatMessageCodec.INSTANCE.toJson(message));
+                            for (ChatMessage message : messages) {
+                                list.add(ChatMessageCodec.INSTANCE.toJson(message));
+                            }
+                            if (list.size() > channelHistorySize) {
+                                list = new ArrayList<>(
+                                    list.subList(list.size() - channelHistorySize, list.size())
+                                );
+                            }
+                            final JsonArray newJson = new JsonArray(list);
+                            map.put(channel, newJson, (putResult) -> {
+                                lock.release();
+                                if (putResult.succeeded()) {
+                                    logStorageEvent(() -> "Successfully stored messages: " + newJson.encode());
+                                } else {
+                                    log.warn("Error storing messages", putResult.cause());
+                                }
+                            });
+                        });
+                    } else {
+                        lock.release();
+                        log.warn("Error getting message-map", mapResult.cause());
                     }
-                    if (list.size() > channelHistorySize) {
-                        list = new ArrayList<>(
-                            list.subList(list.size() - channelHistorySize, list.size())
-                        );
-                    }
-                    final JsonArray newJson = new JsonArray(list);
-                    map.put(channel, newJson, (putResult) -> {
-                        if (putResult.succeeded()) {
-                            logStorageEvent(() -> "Successfully stored messages: " + newJson.encode());
-                        } else {
-                            log.warn("Error storing messages", putResult.cause());
-                        }
-                    });
                 });
             } else {
-                log.warn("Error getting message-map", mapResult.cause());
+                log.warn("Unable to get message lock", lockResult.cause());
             }
         });
     }
