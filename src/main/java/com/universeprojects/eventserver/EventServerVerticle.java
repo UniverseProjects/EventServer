@@ -46,7 +46,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public SlackCommunicationService slackCommunicationService;
     private boolean logConnections = false;
     private boolean logStorage = false;
-    private int channelHistorySize = 200;
+    private int channelHistorySize = 100;
 
     @Override
     public void start() {
@@ -140,7 +140,7 @@ public class EventServerVerticle extends AbstractVerticle {
             return;
         }
         sharedDataService.getMessageMap((mapResult) -> {
-            if(mapResult.succeeded()) {
+            if (mapResult.succeeded()) {
                 final AsyncMap<String, JsonArray> map = mapResult.result();
                 map.get(channel, (result) -> {
                     List<JsonObject> list;
@@ -161,8 +161,8 @@ public class EventServerVerticle extends AbstractVerticle {
                     }
                     final JsonArray newJson = new JsonArray(list);
                     map.put(channel, newJson, (putResult) -> {
-                        if(putResult.succeeded()) {
-                            logStorageEvent(() -> "Successfully stored messages: "+newJson.encode());
+                        if (putResult.succeeded()) {
+                            logStorageEvent(() -> "Successfully stored messages: " + newJson.encode());
                         } else {
                             log.warn("Error storing messages", putResult.cause());
                         }

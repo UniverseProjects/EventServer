@@ -1,5 +1,6 @@
 package com.universeprojects.eventserver;
 
+import com.hazelcast.config.MapConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.logging.Logger;
@@ -58,6 +59,11 @@ public class Main {
             hazelcastConfig.getManagementCenterConfig().setEnabled(true);
             hazelcastConfig.getManagementCenterConfig().setUrl(managementUrl);
         }
+        final MapConfig messageMapConfig = hazelcastConfig.getMapConfig("messages");
+        messageMapConfig.setStatisticsEnabled(true);
+        final MapConfig socketMapConfig = hazelcastConfig.getMapConfig("sockets.global");
+        socketMapConfig.setStatisticsEnabled(true);
+
         clusterManager.setConfig(hazelcastConfig);
         return clusterManager;
     }
