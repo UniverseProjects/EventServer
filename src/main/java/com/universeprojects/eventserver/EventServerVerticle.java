@@ -34,6 +34,8 @@ public class EventServerVerticle extends AbstractVerticle {
     public static final String CONFIG_LOG_STORAGE = "log.storage";
     public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
 
+    private static final int DEFAULT_HISTORY_SIZE = 100;
+
     public enum ServerMode {
         PROD, TEST, TEST_CLIENT
     }
@@ -48,7 +50,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public SlackCommunicationService slackCommunicationService;
     private boolean logConnections = false;
     private boolean logStorage = false;
-    private int channelHistorySize = 100;
+    private int channelHistorySize = DEFAULT_HISTORY_SIZE;
 
     @Override
     public void start() {
@@ -57,7 +59,7 @@ public class EventServerVerticle extends AbstractVerticle {
         String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
         int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
-        channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, 200);
+        channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, DEFAULT_HISTORY_SIZE);
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
 
