@@ -146,7 +146,7 @@ public class EventServerVerticle extends AbstractVerticle {
                 final AsyncMap<String, JsonArray> map = mapResult.result();
                 sharedDataService.getChannelLock(channel, (lockResult) -> {
                     if (lockResult.succeeded()) {
-                        Lock lock = lockResult.result();
+                        final Lock lock = lockResult.result();
                         map.get(channel, (result) -> {
                             List<JsonObject> list;
                             if (result.succeeded() && result.result() != null) {
