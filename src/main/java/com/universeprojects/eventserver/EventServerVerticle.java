@@ -37,6 +37,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public enum ServerMode {
         PROD, TEST, TEST_CLIENT
     }
+
     public EventBus eventBus;
     public SockJSHandler sockJSHandler;
     public AuthService authService;
@@ -68,7 +69,7 @@ public class EventServerVerticle extends AbstractVerticle {
         router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)).setNagHttps(false));
 
 
-        if(serverMode == ServerMode.TEST || serverMode == ServerMode.TEST_CLIENT) {
+        if (serverMode == ServerMode.TEST || serverMode == ServerMode.TEST_CLIENT) {
             Route indexRoute = router.route("/");
             indexRoute.handler(routingContext ->
                     routingContext.response().sendFile("index.html")
@@ -101,11 +102,11 @@ public class EventServerVerticle extends AbstractVerticle {
         slackCommunicationService.setupRoute(router);
 
         server.requestHandler(router::accept).listen(port, "0.0.0.0");
-        log.info("Server started up at http://localhost:"+port);
+        log.info("Server started up at http://localhost:" + port);
     }
 
     public String generateChannelAddress(String channel) {
-        return "channel."+channel;
+        return "channel." + channel;
     }
 
     public String generateUserUpdateAddress(User user) {
@@ -113,7 +114,7 @@ public class EventServerVerticle extends AbstractVerticle {
     }
 
     public String generateUserUpdateAddress(String userId) {
-        return "user.update."+userId;
+        return "user.update." + userId;
     }
 
     public boolean shouldLogConnections() {
@@ -125,27 +126,27 @@ public class EventServerVerticle extends AbstractVerticle {
     }
 
     public void logConnectionEvent(Supplier<String> messageSupplier) {
-        if(shouldLogConnections()) {
+        if (shouldLogConnections()) {
             log.info(messageSupplier.get());
         }
     }
 
     public void logStorageEvent(Supplier<String> messageSupplier) {
-        if(shouldLogStorage()) {
+        if (shouldLogStorage()) {
             log.info(messageSupplier.get());
         }
     }
 
     public void storeMessages(String channel, List<ChatMessage> messages) {
-        if(!shouldStoreMessages(channel)) {
+        if (!shouldStoreMessages(channel)) {
             return;
         }
-        sharedDataService.getMessageMapLock((lockResult) -> {
-            if(lockResult.succeeded()) {
-                Lock lock = lockResult.result();
-                sharedDataService.getMessageMap((mapResult) -> {
-                    if (mapResult.succeeded()) {
-                        final AsyncMap<String, JsonArray> map = mapResult.result();
+        sharedDataService.getMessageMap((mapResult) -> {
+            if (mapResult.succeeded()) {
+                final AsyncMap<String, JsonArray> map = mapResult.result();
+                sharedDataService.getChannelLock(channel, (lockResult) -> {
+                    if (lockResult.succeeded()) {
+                        Lock lock = lockResult.result();
                         map.get(channel, (result) -> {
                             List<JsonObject> list;
                             if (result.succeeded() && result.result() != null) {
@@ -174,13 +175,13 @@ public class EventServerVerticle extends AbstractVerticle {
                             });
                         });
                     } else {
-                        lock.release();
-                        log.warn("Error getting message-map", mapResult.cause());
+                        log.warn("Unable to get message lock", lockResult.cause());
                     }
                 });
             } else {
-                log.warn("Unable to get message lock", lockResult.cause());
+                log.warn("Error getting message-map", mapResult.cause());
             }
+
         });
     }
 

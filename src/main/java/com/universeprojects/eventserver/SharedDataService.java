@@ -24,8 +24,8 @@ public class SharedDataService {
         sd.getLockWithTimeout("slack", 10 * 1000, handler);
     }
 
-    public void getMessageMapLock(Handler<AsyncResult<Lock>> handler) {
-        sd.getLockWithTimeout("messages", 1000, handler);
+    public void getChannelLock(String key, Handler<AsyncResult<Lock>> handler) {
+        sd.getLockWithTimeout("messages:"+key, 1000, handler);
     }
 
     public void getSocketMapLock(Handler<AsyncResult<Lock>> handler) {
