@@ -53,7 +53,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
                 updateChannels(newUser, channels, (added) -> {
                     if(fetchOldMessages) {
-                        findOldMessages(channels, (channel, messages) -> {
+                        findHistoryMessages(channels, (channel, messages) -> {
                             verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
                             ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                             send(socket, envelope);
@@ -188,7 +188,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         });
     }
 
-    private void findOldMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
+    private void findHistoryMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
         if(channelNames.isEmpty() || !channelNames.stream().anyMatch(verticle::shouldStoreMessages)) return;
         verticle.sharedDataService.getMessageMap((mapResult) -> {
             if (mapResult.succeeded()) {
@@ -202,6 +202,10 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                                 final List<ChatMessage> messages = new ArrayList<>();
                                 jsonArray.forEach((messageObj) -> {
                                     ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
+                                    if(message.additionalData == null) {
+                                        message.additionalData = new JsonObject();
+                                    }
+                                    message.additionalData.put("__history", true);
                                     messages.add(message);
                                 });
                                 messageHandler.accept(channel, messages);
@@ -279,7 +283,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     private void updateChannelsForSocket(SockJSSocket socket, User user, String token) {
         final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
                 updateChannels(user, channels, (added) ->
-                        findOldMessages(added, (channel, messages) -> {
+                        findHistoryMessages(added, (channel, messages) -> {
                             ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                             send(socket, envelope);
                         }));
@@ -292,9 +296,9 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             channels.add((String) channelObj);
         }
         updateChannels(user, channels, (added) ->
-                findOldMessages(added, (channel, messages) -> {
+                findHistoryMessages(added, (channel, messages) -> {
                     ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                    Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
+                    Buffer buffer = Buffer.buffer(envelope.toJson().encode());
                     verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
                         for (String id : writerIds) {
                             verticle.eventBus.publish(id, buffer);
