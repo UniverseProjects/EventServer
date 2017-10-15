@@ -19,6 +19,8 @@ dependencies {
     compile "io.vertx:vertx-web:$version"
     compile "io.vertx:vertx-web-client:$version"
     compile "io.vertx:vertx-hazelcast:$version"
+
+    compile 'io.lettuce:lettuce-core:5.0.0.RELEASE'
 }
 
 run {

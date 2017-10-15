@@ -51,16 +51,16 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         verticle.logConnectionEvent(() -> "Established connection on " + socket.localAddress() + " to client " + socket.remoteAddress());
 
         final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
-                updateChannels(newUser, channels, (added) -> {
-                    if(fetchOldMessages) {
-                        findHistoryMessages(channels, (channel, messages) -> {
-                            verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
-                            ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                            send(socket, envelope);
-                        });
-                    }
-                    setupSocket(socket, newUser, token);
-                });
+            updateChannels(newUser, channels, (added) -> {
+                if (fetchOldMessages) {
+                    verticle.findHistoryMessages(channels, (channel, messages) -> {
+                        verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
+                        ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                        send(socket, envelope);
+                    });
+                }
+                setupSocket(socket, newUser, token);
+            });
 
         if (verticle.serverMode == EventServerVerticle.ServerMode.TEST_CLIENT) {
             AuthResponse authResponse = new AuthResponse(true, "test");
@@ -84,9 +84,9 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private void executeAuthentication(SockJSSocket socket, User user, String token, BiConsumer<User, Set<String>> onSuccess) {
-        verticle.logConnectionEvent(() -> "Authenticating connection "+socket.remoteAddress());
+        verticle.logConnectionEvent(() -> "Authenticating connection " + socket.remoteAddress());
         verticle.authService.authenticate(token, (authResponse) -> {
-            verticle.logConnectionEvent(() -> "Authentication for connection "+socket.remoteAddress()+": "+authResponse.success);
+            verticle.logConnectionEvent(() -> "Authentication for connection " + socket.remoteAddress() + ": " + authResponse.success);
             if (authResponse.success) {
                 onAuthSuccess(user, socket, authResponse, onSuccess);
             } else {
@@ -102,26 +102,26 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final User user;
         if (sessionUser == null) {
             final User mapUser = verticle.sharedDataService.getUserIdToUserMap().get(authResponse.userId);
-            if(mapUser != null) {
+            if (mapUser != null) {
                 user = mapUser;
-                verticle.logConnectionEvent(() -> "User connected again with a new session: "+user);
+                verticle.logConnectionEvent(() -> "User connected again with a new session: " + user);
             } else {
                 user = new User(authResponse.userId);
                 setupUser(user);
-                verticle.logConnectionEvent(() -> "New user connected: "+user);
+                verticle.logConnectionEvent(() -> "New user connected: " + user);
             }
-        } else if(!sessionUser.userId.equals(authResponse.userId)) {
+        } else if (!sessionUser.userId.equals(authResponse.userId)) {
             verticle.sharedDataService.getUserIdToUserMap().remove(sessionUser.userId);
             onDisconnect(socket, sessionUser);
             user = new User(authResponse.userId);
             setupUser(user);
-            verticle.logConnectionEvent(() -> "User identity changed from "+sessionUser+" to "+user);
+            verticle.logConnectionEvent(() -> "User identity changed from " + sessionUser + " to " + user);
         } else {
             user = sessionUser;
-            verticle.logConnectionEvent(() -> "User connected again: "+user);
+            verticle.logConnectionEvent(() -> "User connected again: " + user);
         }
         long newCount = user.connectionCounter.incrementAndGet();
-        verticle.logConnectionEvent(() -> "User "+user+" connected. "+newCount+" connections active");
+        verticle.logConnectionEvent(() -> "User " + user + " connected. " + newCount + " connections active");
         if (onSuccess != null) {
             onSuccess.accept(user, authResponse.channels);
         }
@@ -170,7 +170,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     }
 
     private MessageConsumer<ChatMessage> registerChannel(String channel, User user) {
-        verticle.logConnectionEvent(() -> "Registering channel-consumer for channel "+channel+" to user " + user);
+        verticle.logConnectionEvent(() -> "Registering channel-consumer for channel " + channel + " to user " + user);
         final String address = verticle.generateChannelAddress(channel);
         return verticle.eventBus.consumer(address, (message) -> handleChannelMessage(user, message));
     }
@@ -178,7 +178,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     private void handleChannelMessage(User user, Message<ChatMessage> message) {
         final ChatMessage chatMessage = message.body();
         final ChatEnvelope envelope = ChatEnvelope.forMessage(chatMessage);
-        verticle.logConnectionEvent(() -> "Sending channel-message for channel "+chatMessage.channel+" to user " + user + ": " + chatMessage.text);
+        verticle.logConnectionEvent(() -> "Sending channel-message for channel " + chatMessage.channel + " to user " + user + ": " + chatMessage.text);
         final JsonObject messageJson = envelope.toJson();
         final Buffer buffer = Buffer.buffer(messageJson.encode());
         verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
@@ -188,36 +188,6 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         });
     }
 
-    private void findHistoryMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        if(channelNames.isEmpty() || !channelNames.stream().anyMatch(verticle::shouldStoreMessages)) return;
-        verticle.sharedDataService.getMessageMap((mapResult) -> {
-            if (mapResult.succeeded()) {
-                final AsyncMap<String, JsonArray> map = mapResult.result();
-                for (String channel : channelNames) {
-                    if(!verticle.shouldStoreMessages(channel)) continue;
-                    map.get(channel, (result) -> {
-                        if (result.succeeded() && result.result() != null) {
-                            final JsonArray jsonArray = result.result();
-                            if (jsonArray != null && !jsonArray.isEmpty()) {
-                                final List<ChatMessage> messages = new ArrayList<>();
-                                jsonArray.forEach((messageObj) -> {
-                                    ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
-                                    if(message.additionalData == null) {
-                                        message.additionalData = new JsonObject();
-                                    }
-                                    message.additionalData.put("__history", true);
-                                    messages.add(message);
-                                });
-                                messageHandler.accept(channel, messages);
-                            }
-                        }
-                    });
-                }
-            } else {
-                log.warn("Error getting message-map", mapResult.cause());
-            }
-        });
-    }
 
     private void send(SockJSSocket socket, ChatEnvelope envelope) {
         JsonObject json = envelope.toJson();
@@ -237,7 +207,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         verticle.sharedDataService.getUserIdToUserMap().put(user.userId, user);
         verticle.sharedDataService.getGlobalSocketMap((mapResult) -> {
             if (mapResult.succeeded()) {
-                verticle.logConnectionEvent(() -> "Registering socket "+socket.writeHandlerID()+" for user " + user);
+                verticle.logConnectionEvent(() -> "Registering socket " + socket.writeHandlerID() + " for user " + user);
                 final AsyncMap<String, JsonArray> asyncMap = mapResult.result();
                 asyncMap.get(user.userId, (result) -> {
                     Set<String> set = new LinkedHashSet<>();
@@ -263,7 +233,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         localSocketMap.put(user.userId, socketWritersJson);
         socket.handler((buffer) -> onSocketMessage(socket, user, token, buffer));
         socket.exceptionHandler((throwable) ->
-            log.error("Socket error for user " + user)
+                log.error("Socket error for user " + user)
         );
         socket.endHandler((ignored) -> onDisconnect(socket, user));
     }
@@ -282,11 +252,11 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     private void updateChannelsForSocket(SockJSSocket socket, User user, String token) {
         final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
-                updateChannels(user, channels, (added) ->
-                        findHistoryMessages(added, (channel, messages) -> {
-                            ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                            send(socket, envelope);
-                        }));
+            updateChannels(user, channels, (added) ->
+                verticle.findHistoryMessages(added, (channel, messages) -> {
+                    ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                    send(socket, envelope);
+                }));
         executeAuthentication(socket, user, token, onAuthSuccess);
     }
 
@@ -296,22 +266,22 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             channels.add((String) channelObj);
         }
         updateChannels(user, channels, (added) ->
-                findHistoryMessages(added, (channel, messages) -> {
-                    ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                    Buffer buffer = Buffer.buffer(envelope.toJson().encode());
-                    verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
-                        for (String id : writerIds) {
-                            verticle.eventBus.publish(id, buffer);
-                        }
-                    });
-                }));
+            verticle.findHistoryMessages(added, (channel, messages) -> {
+                ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                Buffer buffer = Buffer.buffer(envelope.toJson().encode());
+                verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {
+                    for (String id : writerIds) {
+                        verticle.eventBus.publish(id, buffer);
+                    }
+                });
+            }));
     }
 
     private void onDisconnect(SockJSSocket socket, User user) {
         long newCount = user.connectionCounter.decrementAndGet();
-        verticle.logConnectionEvent(() -> "User "+user+" disconnected. "+newCount+" connections active");
-        if(newCount <= 0) {
-            verticle.logConnectionEvent(() -> "Last connection removed. Cleaning up user "+user);
+        verticle.logConnectionEvent(() -> "User " + user + " disconnected. " + newCount + " connections active");
+        if (newCount <= 0) {
+            verticle.logConnectionEvent(() -> "Last connection removed. Cleaning up user " + user);
             verticle.sharedDataService.getSessionToUserMap().remove(socket.webSession().id());
             verticle.sharedDataService.getUserIdToUserMap().remove(user.userId);
             user.getChannelConsumers((map) -> {

@@ -21,6 +21,8 @@ import io.vertx.ext.web.sstore.LocalSessionStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public class EventServerVerticle extends AbstractVerticle {
@@ -33,6 +35,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public static final String CONFIG_LOG_CONNECTIONS = "log.connections";
     public static final String CONFIG_LOG_STORAGE = "log.storage";
     public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
+    public static final String CONFIG_REDIS_ENABLED = "redis.enabled";
 
     private static final int DEFAULT_HISTORY_SIZE = 100;
 
@@ -48,9 +51,11 @@ public class EventServerVerticle extends AbstractVerticle {
     public SharedDataService sharedDataService;
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
+    public RedisService redisService;
     private boolean logConnections = false;
     private boolean logStorage = false;
     private int channelHistorySize = DEFAULT_HISTORY_SIZE;
+    private boolean enableRedis;
 
     @Override
     public void start() {
@@ -60,6 +65,8 @@ public class EventServerVerticle extends AbstractVerticle {
         int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
         channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, DEFAULT_HISTORY_SIZE);
+        enableRedis = Config.getBoolean(CONFIG_REDIS_ENABLED, false);
+        redisService = new RedisService();
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
 
@@ -143,6 +150,14 @@ public class EventServerVerticle extends AbstractVerticle {
         if (!shouldStoreMessages(channel)) {
             return;
         }
+        if(enableRedis) {
+            redisService.storeChatHistory(channel, channelHistorySize, messages);
+        } else {
+            storeMessagesInHazelcast(channel, messages);
+        }
+    }
+
+    private void storeMessagesInHazelcast(String channel, List<ChatMessage> messages) {
         sharedDataService.getMessageMap((mapResult) -> {
             if (mapResult.succeeded()) {
                 final AsyncMap<String, JsonArray> map = mapResult.result();
@@ -183,7 +198,45 @@ public class EventServerVerticle extends AbstractVerticle {
             } else {
                 log.warn("Error getting message-map", mapResult.cause());
             }
+        });
+    }
 
+    public void findHistoryMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
+        if(channelNames.isEmpty() || !channelNames.stream().anyMatch(this::shouldStoreMessages)) return;
+        if(enableRedis) {
+            redisService.fetchHistoryMessages(channelNames, channelHistorySize, messageHandler);
+        } else {
+            fetchHisotryMessagesFromHazelcast(channelNames, messageHandler);
+        }
+    }
+
+    private void fetchHisotryMessagesFromHazelcast(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
+        sharedDataService.getMessageMap((mapResult) -> {
+            if (mapResult.succeeded()) {
+                final AsyncMap<String, JsonArray> map = mapResult.result();
+                for (String channel : channelNames) {
+                    if(!shouldStoreMessages(channel)) continue;
+                    map.get(channel, (result) -> {
+                        if (result.succeeded() && result.result() != null) {
+                            final JsonArray jsonArray = result.result();
+                            if (jsonArray != null && !jsonArray.isEmpty()) {
+                                final List<ChatMessage> messages = new ArrayList<>();
+                                jsonArray.forEach((messageObj) -> {
+                                    ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
+                                    if(message.additionalData == null) {
+                                        message.additionalData = new JsonObject();
+                                    }
+                                    message.additionalData.put("__history", true);
+                                    messages.add(message);
+                                });
+                                messageHandler.accept(channel, messages);
+                            }
+                        }
+                    });
+                }
+            } else {
+                log.warn("Error getting message-map", mapResult.cause());
+            }
         });
     }
 
