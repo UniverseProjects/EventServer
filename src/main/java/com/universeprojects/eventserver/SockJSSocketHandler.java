@@ -53,7 +53,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
             updateChannels(newUser, channels, (added) -> {
                 if (fetchOldMessages) {
-                    verticle.findHistoryMessages(channels, (channel, messages) -> {
+                    verticle.fetchHistoryMessages(channels, (channel, messages) -> {
                         verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
                         ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                         send(socket, envelope);
@@ -253,7 +253,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     private void updateChannelsForSocket(SockJSSocket socket, User user, String token) {
         final BiConsumer<User, Set<String>> onAuthSuccess = (newUser, channels) ->
             updateChannels(user, channels, (added) ->
-                verticle.findHistoryMessages(added, (channel, messages) -> {
+                verticle.fetchHistoryMessages(added, (channel, messages) -> {
                     ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                     send(socket, envelope);
                 }));
@@ -266,7 +266,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
             channels.add((String) channelObj);
         }
         updateChannels(user, channels, (added) ->
-            verticle.findHistoryMessages(added, (channel, messages) -> {
+            verticle.fetchHistoryMessages(added, (channel, messages) -> {
                 ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
                 Buffer buffer = Buffer.buffer(envelope.toJson().encode());
                 verticle.sharedDataService.getLocalSocketWriterIdsForUser(user, (writerIds) -> {

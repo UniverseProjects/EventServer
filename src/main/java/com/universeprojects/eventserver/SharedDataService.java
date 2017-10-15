@@ -28,10 +28,6 @@ public class SharedDataService {
         sd.getLockWithTimeout("messages:"+key, 1000, handler);
     }
 
-    public void getSocketMapLock(Handler<AsyncResult<Lock>> handler) {
-        sd.getLockWithTimeout("sockets.global", 1000, handler);
-    }
-
     public LocalMap<String, User> getSessionToUserMap() {
         return sd.<String, User>getLocalMap("sessionUsers");
     }

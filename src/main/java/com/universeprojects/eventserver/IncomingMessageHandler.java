@@ -69,7 +69,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                 verticle.logConnectionEvent(() -> "Processing message for channel " + channel + ": " + chatMessage.text);
                 verticle.eventBus.publish(address, chatMessage);
             }
-            verticle.storeMessages(channel, messages);
+            verticle.storeChatHistory(channel, messages);
         }
     }
 

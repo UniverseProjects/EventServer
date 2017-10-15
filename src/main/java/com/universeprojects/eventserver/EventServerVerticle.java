@@ -4,12 +4,8 @@ package com.universeprojects.eventserver;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.shareddata.AsyncMap;
-import io.vertx.core.shareddata.Lock;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -19,11 +15,11 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class EventServerVerticle extends AbstractVerticle {
 
@@ -51,24 +47,27 @@ public class EventServerVerticle extends AbstractVerticle {
     public SharedDataService sharedDataService;
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
-    public RedisService redisService;
+    public HistoryService historyService;
     private boolean logConnections = false;
     private boolean logStorage = false;
     private int channelHistorySize = DEFAULT_HISTORY_SIZE;
-    private boolean enableRedis;
 
     @Override
     public void start() {
         logConnections = Config.getBoolean(CONFIG_LOG_CONNECTIONS, false);
         logStorage = Config.getBoolean(CONFIG_LOG_STORAGE, false);
-        String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
-        int port = Config.getInt(CONFIG_PORT, 6969);
+        final String corsOrigins = Config.getString(CONFIG_CORS_ORIGINS, "*");
+        final int port = Config.getInt(CONFIG_PORT, 6969);
         serverMode = Config.getEnum(CONFIG_MODE, ServerMode.class, ServerMode.PROD);
         channelHistorySize = Config.getInt(CONFIG_CHANNEL_HISTORY_SIZE, DEFAULT_HISTORY_SIZE);
-        enableRedis = Config.getBoolean(CONFIG_REDIS_ENABLED, false);
-        redisService = new RedisService();
-        HttpServer server = vertx.createHttpServer();
-        Router router = Router.router(vertx);
+        final boolean enableRedis = Config.getBoolean(CONFIG_REDIS_ENABLED, false);
+        if(enableRedis) {
+            historyService = new RedisHistoryService();
+        } else {
+            historyService = new HazelcastHistoryService(this);
+        }
+        final HttpServer server = vertx.createHttpServer();
+        final Router router = Router.router(vertx);
 
         router.route("/healthcheck").handler(new HealthCheckHandler(this));
         router.route("/version").blockingHandler(new VersionHandler());
@@ -96,7 +95,7 @@ public class EventServerVerticle extends AbstractVerticle {
         SockJSHandlerOptions sockJSHandlerOptions = new SockJSHandlerOptions();
         sockJSHandler = SockJSHandler.create(vertx, sockJSHandlerOptions).socketHandler(sockJSSocketHandler);
 
-        Route socketRoute = router.route("/socket/*");
+        final Route socketRoute = router.route("/socket/*");
         socketRoute.handler(sockJSHandler);
 
         final ApiAuthHandler apiAuthHandler = new ApiAuthHandler();
@@ -146,98 +145,17 @@ public class EventServerVerticle extends AbstractVerticle {
         }
     }
 
-    public void storeMessages(String channel, List<ChatMessage> messages) {
+    public void storeChatHistory(String channel, List<ChatMessage> messages) {
         if (!shouldStoreMessages(channel)) {
             return;
         }
-        if(enableRedis) {
-            redisService.storeChatHistory(channel, channelHistorySize, messages);
-        } else {
-            storeMessagesInHazelcast(channel, messages);
-        }
+        historyService.storeChatHistory(channel, channelHistorySize, messages);
     }
 
-    private void storeMessagesInHazelcast(String channel, List<ChatMessage> messages) {
-        sharedDataService.getMessageMap((mapResult) -> {
-            if (mapResult.succeeded()) {
-                final AsyncMap<String, JsonArray> map = mapResult.result();
-                sharedDataService.getChannelLock(channel, (lockResult) -> {
-                    if (lockResult.succeeded()) {
-                        final Lock lock = lockResult.result();
-                        map.get(channel, (result) -> {
-                            List<JsonObject> list;
-                            if (result.succeeded() && result.result() != null) {
-                                //noinspection unchecked
-                                list = result.result().getList();
-                            } else {
-                                list = new ArrayList<>();
-                            }
-
-                            for (ChatMessage message : messages) {
-                                list.add(ChatMessageCodec.INSTANCE.toJson(message));
-                            }
-                            if (list.size() > channelHistorySize) {
-                                list = new ArrayList<>(
-                                    list.subList(list.size() - channelHistorySize, list.size())
-                                );
-                            }
-                            final JsonArray newJson = new JsonArray(list);
-                            map.put(channel, newJson, (putResult) -> {
-                                lock.release();
-                                if (putResult.succeeded()) {
-                                    logStorageEvent(() -> "Successfully stored messages: " + newJson.encode());
-                                } else {
-                                    log.warn("Error storing messages", putResult.cause());
-                                }
-                            });
-                        });
-                    } else {
-                        log.warn("Unable to get message lock", lockResult.cause());
-                    }
-                });
-            } else {
-                log.warn("Error getting message-map", mapResult.cause());
-            }
-        });
-    }
-
-    public void findHistoryMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        if(channelNames.isEmpty() || !channelNames.stream().anyMatch(this::shouldStoreMessages)) return;
-        if(enableRedis) {
-            redisService.fetchHistoryMessages(channelNames, channelHistorySize, messageHandler);
-        } else {
-            fetchHisotryMessagesFromHazelcast(channelNames, messageHandler);
-        }
-    }
-
-    private void fetchHisotryMessagesFromHazelcast(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        sharedDataService.getMessageMap((mapResult) -> {
-            if (mapResult.succeeded()) {
-                final AsyncMap<String, JsonArray> map = mapResult.result();
-                for (String channel : channelNames) {
-                    if(!shouldStoreMessages(channel)) continue;
-                    map.get(channel, (result) -> {
-                        if (result.succeeded() && result.result() != null) {
-                            final JsonArray jsonArray = result.result();
-                            if (jsonArray != null && !jsonArray.isEmpty()) {
-                                final List<ChatMessage> messages = new ArrayList<>();
-                                jsonArray.forEach((messageObj) -> {
-                                    ChatMessage message = ChatMessageCodec.INSTANCE.fromJson((JsonObject) messageObj);
-                                    if(message.additionalData == null) {
-                                        message.additionalData = new JsonObject();
-                                    }
-                                    message.additionalData.put("__history", true);
-                                    messages.add(message);
-                                });
-                                messageHandler.accept(channel, messages);
-                            }
-                        }
-                    });
-                }
-            } else {
-                log.warn("Error getting message-map", mapResult.cause());
-            }
-        });
+    public void fetchHistoryMessages(Set<String> channelNames, BiConsumer<String, List<ChatMessage>> messageHandler) {
+        Set<String> channelMessagesWithHistory = channelNames.stream().filter(this::shouldStoreMessages).collect(Collectors.toSet());
+        if(channelMessagesWithHistory.isEmpty()) return;
+        historyService.fetchHistoryMessages(channelNames, channelHistorySize, messageHandler);
     }
 
     public boolean shouldStoreMessages(String channel) {

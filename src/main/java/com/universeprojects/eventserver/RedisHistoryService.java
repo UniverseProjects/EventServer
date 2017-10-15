@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-public class RedisService {
+public class RedisHistoryService implements HistoryService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -22,7 +22,7 @@ public class RedisService {
     private final RedisClient redisClient;
     private final RedisChatCodec redisChatCodec;
 
-    public RedisService() {
+    public RedisHistoryService() {
         final String hostname = Config.getString(CONFIG_REDIS_HOST, "redis");
         final int port = Config.getInt(CONFIG_REDIS_PORT, 6379);
         final Duration duration = Duration.ofSeconds(10);
@@ -30,6 +30,7 @@ public class RedisService {
         this.redisChatCodec = new RedisChatCodec();
     }
 
+    @Override
     public void storeChatHistory(String channel, int historySize, List<ChatMessage> messages) {
         if (messages.isEmpty()) return;
         ChatMessage[] messageArray = messages.toArray(new ChatMessage[messages.size()]);
@@ -48,6 +49,7 @@ public class RedisService {
         commands.exec().whenComplete(errorHandler);
     }
 
+    @Override
     public void fetchHistoryMessages(Set<String> channels, int historySize, BiConsumer<String, List<ChatMessage>> messageHandler) {
         final RedisAsyncCommands<String, ChatMessage> commands =
             this.redisClient.connect(redisChatCodec).async();
