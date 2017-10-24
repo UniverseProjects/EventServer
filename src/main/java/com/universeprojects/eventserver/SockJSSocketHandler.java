@@ -31,6 +31,17 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     @Override
     public void handle(final SockJSSocket socket) {
+        verticle.getVertx().executeBlocking((future) -> {
+            try {
+                handleConnection(socket);
+                future.complete();
+            } catch (Exception ex) {
+                future.fail(ex);
+            }
+        }, false, (future) -> {});
+    }
+
+    public void handleConnection(final SockJSSocket socket) {
         final Session session = socket.webSession();
         final User user = verticle.sessionService.getUserForSession(session.id());
         final String uri = socket.uri();
