@@ -23,6 +23,21 @@ public class User implements Shareable {
     public final Map<String, Set<SockJSSocket>> sessionIdToSocketMap = new LinkedHashMap<>();
     public MessageConsumer<JsonArray> updateConsumer;
     public MessageConsumer<ChatMessage> privateMessageConsumer;
+    private boolean removed = false;
+
+    public boolean isRemoved() {
+        return removed;
+    }
+
+    public void remove() {
+        if(updateConsumer != null) {
+            updateConsumer.unregister();
+        }
+        if(privateMessageConsumer != null) {
+            privateMessageConsumer.unregister();
+        }
+        removed = true;
+    }
 
     private final ReentrantLock lock = new ReentrantLock();
 

@@ -1,7 +1,6 @@
 package com.universeprojects.eventserver;
 
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -82,13 +81,10 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
                     verticle.logConnectionEvent(() -> "Processing direct message for user " + userId + ": " + chatMessage.text);
                 }
             }
-            final ChatEnvelope envelope = ChatEnvelope.forMessages(msgs);
-            final Buffer buffer  = Buffer.buffer(envelope.toJson().encode());
-            verticle.sharedDataService.getGlobalSocketWriterIdsForUser(userId, (writerIds) -> {
-                for (String writerId : writerIds) {
-                    verticle.eventBus.publish(writerId, buffer);
-                }
-            });
+            String address = verticle.generatePrivateMessageAddress(userId);
+            for(ChatMessage message : msgs) {
+                verticle.eventBus.publish(address, message);
+            }
         }
     }
 }

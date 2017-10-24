@@ -70,6 +70,7 @@ public class UserService {
                 }
                 verticle.channelService.updateSubscriptions(u, Collections.emptyList());
                 users.remove(user.userId);
+                user.remove();
                 return true;
             });
         } finally {
