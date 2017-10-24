@@ -48,6 +48,9 @@ public class EventServerVerticle extends AbstractVerticle {
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
     public HistoryService historyService;
+    public ChannelService channelService;
+    public UserService userService;
+    public SessionService sessionService;
     private boolean logConnections = false;
     private boolean logStorage = false;
     private int channelHistorySize = DEFAULT_HISTORY_SIZE;
@@ -66,6 +69,9 @@ public class EventServerVerticle extends AbstractVerticle {
         } else {
             historyService = new HazelcastHistoryService(this);
         }
+        this.userService = new UserService(this);
+        this.channelService = new ChannelService(this);
+        this.sessionService = new SessionService();
         final HttpServer server = vertx.createHttpServer();
         final Router router = Router.router(vertx);
 
@@ -117,12 +123,12 @@ public class EventServerVerticle extends AbstractVerticle {
         return "channel." + channel;
     }
 
-    public String generateUserUpdateAddress(User user) {
-        return generateUserUpdateAddress(user.userId);
-    }
-
     public String generateUserUpdateAddress(String userId) {
         return "user.update." + userId;
+    }
+
+    public String generatePrivateMessageAddress(String userId) {
+        return "user.private." + userId;
     }
 
     public boolean shouldLogConnections() {
