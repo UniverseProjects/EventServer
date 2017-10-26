@@ -21,9 +21,6 @@ public class ChannelService {
     }
 
     public Set<String> updateSubscriptions(User user, Collection<String> newChannels) {
-        if(!user.isLockedByCurrentThread()) {
-            throw new IllegalStateException("UserLock needs to be held by this thread");
-        }
         Set<String> addedChannels = new LinkedHashSet<>();
         addedChannels.addAll(newChannels);
         addedChannels.removeAll(user.channelSubscriptions.keySet());
@@ -47,7 +44,9 @@ public class ChannelService {
                 ChannelSubscription subscription = channelSubscriptions.get(channel);
                 if(subscription == null) {
                     final ChannelSubscription newSubscription = new ChannelSubscription(channel);
-                    newSubscription.messageConsumer = verticle.eventBus.consumer(verticle.generateChannelAddress(channel), (message) -> processChannelMessage(newSubscription, message));
+                    newSubscription.messageConsumer = verticle.eventBus.consumer(
+                        verticle.generateChannelAddress(channel),
+                        (message) -> processChannelMessage(newSubscription, message));
                     channelSubscriptions.put(channel, newSubscription);
                     subscription = newSubscription;
                 }

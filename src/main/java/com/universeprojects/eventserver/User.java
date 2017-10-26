@@ -24,6 +24,7 @@ public class User implements Shareable {
     public MessageConsumer<JsonArray> updateConsumer;
     public MessageConsumer<ChatMessage> privateMessageConsumer;
     private boolean removed = false;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public boolean isRemoved() {
         return removed;
@@ -38,8 +39,6 @@ public class User implements Shareable {
         }
         removed = true;
     }
-
-    private final ReentrantLock lock = new ReentrantLock();
 
     public User(String userId) {
         this.userId = userId;
@@ -97,7 +96,7 @@ public class User implements Shareable {
         return socketSet;
     }
 
-    private void enforceLockHeld() {
+    public void enforceLockHeld() {
         if(!lock.isHeldByCurrentThread()) {
             throw new IllegalStateException("User lock needs to be held");
         }

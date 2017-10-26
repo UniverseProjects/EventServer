@@ -10,13 +10,12 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 
 public class UserService {
     private final Map<String, User> users = new ConcurrentHashMap<>();
-    private final ReadWriteLock userLock = new ReentrantReadWriteLock();
+    private final ReentrantLock userLock = new ReentrantLock();
     private final EventServerVerticle verticle;
 
     public UserService(EventServerVerticle verticle) {
@@ -24,22 +23,12 @@ public class UserService {
     }
 
     public User getOrCreateUser(String userId) {
-        userLock.readLock().lock();
+        userLock.lock();
         try {
-            final User user = users.get(userId);
-            if (user != null) {
-                return user;
-            } else {
-                return createUserWriteLocked(userId);
+            final User existingUser = users.get(userId);
+            if(existingUser != null) {
+                return existingUser;
             }
-        } finally {
-            userLock.readLock().unlock();
-        }
-    }
-
-    private User createUserWriteLocked(String userId) {
-        userLock.writeLock().lock();
-        try {
             final User newUser = new User(userId);
             newUser.executeLocked((user) -> {
                 user.updateConsumer = verticle.eventBus.<JsonArray>consumer(
@@ -56,12 +45,12 @@ public class UserService {
             users.put(userId, newUser);
             return newUser;
         } finally {
-            userLock.writeLock().unlock();
+            userLock.unlock();
         }
     }
 
     public boolean checkAndRemoveUser(User user, BooleanSupplier supplier) {
-        userLock.writeLock().lock();
+        userLock.lock();
         try {
             return user.executeLockedReturning((u) -> {
                 boolean check = supplier.getAsBoolean();
@@ -74,7 +63,7 @@ public class UserService {
                 return true;
             });
         } finally {
-            userLock.writeLock().unlock();
+            userLock.unlock();
         }
     }
 

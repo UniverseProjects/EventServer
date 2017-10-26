@@ -36,6 +36,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 handleConnection(socket);
                 future.complete();
             } catch (Exception ex) {
+                log.error("Error processing socket connection", ex);
                 future.fail(ex);
             }
         }, false, (future) -> {});
@@ -43,7 +44,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
     public void handleConnection(final SockJSSocket socket) {
         final Session session = socket.webSession();
-        final User user = verticle.sessionService.getUserForSession(session.id());
+        final User sessionUser = verticle.sessionService.getUserForSession(session.id());
         final String uri = socket.uri();
         final QueryStringDecoder queryStringDecoder = new QueryStringDecoder(uri);
         final Map<String, List<String>> params = queryStringDecoder.parameters();
@@ -52,26 +53,28 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
 
         verticle.logConnectionEvent(() -> "Established connection on " + socket.localAddress() + " to client " + socket.remoteAddress());
 
-        final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) -> {
-            setupSocket(socket, newUser, token);
-            verticle.channelService.updateSubscriptions(user, channels);
-            user.executeLocked(u -> u.registerSocket(socket));
-            if (fetchOldMessages) {
-                verticle.fetchHistoryMessages(channels, (channel, messages) -> {
-                    verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + user);
-                    ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
-                    send(socket, envelope);
-                });
-            }
-        };
+        final BiConsumer<User, Set<String>> onSuccess = (newUser, channels) ->
+            processNewUser(socket, token, fetchOldMessages, newUser, channels);
 
         if (verticle.serverMode == EventServerVerticle.ServerMode.TEST_CLIENT) {
-            AuthResponse authResponse = new AuthResponse(true, "test");
+            AuthResponse authResponse = new AuthResponse(true, token);
             authResponse.channels.add("public");
             authResponse.channels.add("group.test");
-            onAuthSuccess(user, authResponse, onSuccess);
+            onAuthSuccess(sessionUser, authResponse, onSuccess);
         } else {
-            executeAuthentication(socket, user, token, onSuccess);
+            executeAuthentication(socket, sessionUser, token, onSuccess);
+        }
+    }
+
+    private void processNewUser(SockJSSocket socket, String token, boolean fetchOldMessages, User newUser, Set<String> channels) {
+        setupSocket(socket, newUser, token);
+        verticle.channelService.updateSubscriptions(newUser, channels);
+        if (fetchOldMessages) {
+            verticle.fetchHistoryMessages(channels, (channel, messages) -> {
+                verticle.logConnectionEvent(() -> "Sending old messages for channel " + channel + " to user " + newUser);
+                ChatEnvelope envelope = ChatEnvelope.forMessages(messages);
+                send(socket, envelope);
+            });
         }
     }
 
@@ -110,7 +113,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         } else if (sessionUser != mapUser) {
             Set<SockJSSocket> sessionUserSockets = sessionUser.executeLockedReturning(su -> su.removeSession(sessionUser.userId));
             user = mapUser;
-            sessionUserSockets.forEach(user::registerSocket);
+            sessionUserSockets.forEach(user::removeSocket);
             verticle.logConnectionEvent(() -> "User identity changed from " + sessionUser + " to " + user);
         } else {
             user = sessionUser;
@@ -142,14 +145,17 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
                 log.error("Socket error for user " + user)
         );
         socket.endHandler((ignored) -> onDisconnect(socket, user));
+        verticle.sessionService.putSession(socket, user);
     }
 
     private void onDisconnect(SockJSSocket socket, User user) {
-        user.removeSocket(socket);
-        verticle.sessionService.removeSession(socket.webSession().id());
-        if (user.sockets.isEmpty()) {
-            verticle.userService.checkAndRemoveUser(user, user.sockets::isEmpty);
-        }
+        user.executeLocked((u) -> {
+            u.removeSocket(socket);
+            verticle.sessionService.removeSession(socket.webSession().id());
+            if (u.sockets.isEmpty()) {
+                verticle.userService.checkAndRemoveUser(u, u.sockets::isEmpty);
+            }
+        });
     }
 
     private void onSocketMessage(SockJSSocket socket, User user, String token, Buffer buffer) {
