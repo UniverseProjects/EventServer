@@ -2,6 +2,7 @@ package com.universeprojects.eventserver;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class RedisHistoryService implements HistoryService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -25,6 +27,7 @@ public class RedisHistoryService implements HistoryService {
     private final RedisClient redisClient;
     private final RedisChatCodec redisChatCodec;
     private final long historyExpireSeconds;
+    private final StatefulRedisConnection<String, ChatMessage> connection;
 
     public RedisHistoryService() {
         final String hostname = Config.getString(CONFIG_REDIS_HOST, "redis");
@@ -33,6 +36,7 @@ public class RedisHistoryService implements HistoryService {
         this.redisClient = RedisClient.create(new RedisURI(hostname, port, duration));
         this.redisChatCodec = new RedisChatCodec();
         this.historyExpireSeconds = Config.getLong(CONFIG_HISTORY_EXPIRE, 24 * 60 * 60);
+        this.connection = this.redisClient.connect(redisChatCodec);
     }
 
     @Override
@@ -40,21 +44,35 @@ public class RedisHistoryService implements HistoryService {
         if (messages.isEmpty()) return;
         ChatMessage[] messageArray = messages.toArray(new ChatMessage[messages.size()]);
         final String key = generateChannelKey(channel);
-        final RedisAsyncCommands<String, ChatMessage> commands =
-            this.redisClient.connect(redisChatCodec).async();
-        BiConsumer<Object, Throwable> errorHandler = (result, ex) -> {
-            if(ex != null) {
-                log.error("Error storing history entries", ex);
-            }
-        };
+        try {
+            final RedisAsyncCommands<String, ChatMessage> commands =
+                connection.async();
+            BiConsumer<Object, Throwable> errorHandler = (result, ex) -> {
+                try {
+                    connection.close();
+                } catch (Exception closeEx) {
+                    log.error("Exception closing connection", closeEx);
+                }
+                if (ex != null) {
+                    log.error("Error storing history entries", ex);
+                }
+            };
 
-        commands.multi().whenComplete(errorHandler);
-        commands.lpush(key, messageArray).whenComplete(errorHandler);
-        commands.ltrim(key, 0, historySize).whenComplete(errorHandler);
-        if(isVolatileChannel(channel)) {
-            commands.expire(key, historyExpireSeconds);
+            commands.multi().whenComplete(errorHandler);
+            commands.lpush(key, messageArray).whenComplete(errorHandler);
+            commands.ltrim(key, 0, historySize).whenComplete(errorHandler);
+            if (isVolatileChannel(channel)) {
+                commands.expire(key, historyExpireSeconds);
+            }
+            commands.exec().whenComplete(errorHandler);
+        } catch (Exception ex) {
+            log.error("Error storing chat history", ex);
+            try {
+                connection.close();
+            } catch (Exception closeEx) {
+                log.error("Exception closing connection after failed storage", closeEx);
+            }
         }
-        commands.exec().whenComplete(errorHandler);
     }
 
     private boolean isVolatileChannel(String channel) {
@@ -63,8 +81,7 @@ public class RedisHistoryService implements HistoryService {
 
     @Override
     public void fetchHistoryMessages(Set<String> channels, int historySize, BiConsumer<String, List<ChatMessage>> messageHandler) {
-        final RedisAsyncCommands<String, ChatMessage> commands =
-            this.redisClient.connect(redisChatCodec).async();
+        final RedisAsyncCommands<String, ChatMessage> commands = connection.async();
         for (final String channel : channels) {
             final String key = generateChannelKey(channel);
             commands.lrange(key, 0, historySize - 1).whenComplete(
