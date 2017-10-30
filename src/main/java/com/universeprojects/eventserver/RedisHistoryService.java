@@ -3,6 +3,7 @@ package com.universeprojects.eventserver;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -60,7 +61,13 @@ public class RedisHistoryService implements HistoryService {
                     if (ex != null) {
                         log.error("Error fetching history entries", ex);
                     } else {
-                        Collections.reverse(list);
+                        Collections.reverse(list); //Redis returns a reversed list
+                        list.forEach((message) -> {
+                            if(message.additionalData == null) {
+                                message.additionalData = new JsonObject();
+                            }
+                            message.additionalData.put("__history", true);
+                        });
                         messageHandler.accept(channel, list);
                     }
                 });
