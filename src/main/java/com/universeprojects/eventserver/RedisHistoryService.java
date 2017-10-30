@@ -32,7 +32,7 @@ public class RedisHistoryService implements HistoryService {
         final Duration duration = Duration.ofSeconds(10);
         this.redisClient = RedisClient.create(new RedisURI(hostname, port, duration));
         this.redisChatCodec = new RedisChatCodec();
-        this.historyExpireSeconds = Config.getLong(CONFIG_HISTORY_EXPIRE, 6 * 60 * 60);
+        this.historyExpireSeconds = Config.getLong(CONFIG_HISTORY_EXPIRE, 24 * 60 * 60);
     }
 
     @Override

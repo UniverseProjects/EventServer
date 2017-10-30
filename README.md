@@ -105,4 +105,4 @@ slack.token               |String               |               |Token that the 
 redis.enabled             |boolean              |false          |Enables Redis for storing history
 redis.host                |String               |redis          |Redis Hostname. Only relevant if redis.enabled=true
 redis.port                |int                  |6379           |Redis Port. Only relevant if redis.enabled=true
-redis.history.expire      |long                 |6*60*60        |Seconds since the last update until redis expires all history for a volatile channel (channel starting with ?)
+redis.history.expire      |long                 |24*60*60       |Seconds since the last update until redis expires all history for a volatile channel (channel starting with ?)
