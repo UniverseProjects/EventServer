@@ -19,9 +19,12 @@ public class RedisHistoryService implements HistoryService {
 
     public static final String CONFIG_REDIS_HOST = "redis.host";
     public static final String CONFIG_REDIS_PORT = "redis.port";
+    public static final String CONFIG_HISTORY_EXPIRE = "redis.history.expire";
+
 
     private final RedisClient redisClient;
     private final RedisChatCodec redisChatCodec;
+    private final long historyExpireSeconds;
 
     public RedisHistoryService() {
         final String hostname = Config.getString(CONFIG_REDIS_HOST, "redis");
@@ -29,6 +32,7 @@ public class RedisHistoryService implements HistoryService {
         final Duration duration = Duration.ofSeconds(10);
         this.redisClient = RedisClient.create(new RedisURI(hostname, port, duration));
         this.redisChatCodec = new RedisChatCodec();
+        this.historyExpireSeconds = Config.getLong(CONFIG_HISTORY_EXPIRE, 6 * 60 * 60);
     }
 
     @Override
@@ -47,7 +51,14 @@ public class RedisHistoryService implements HistoryService {
         commands.multi().whenComplete(errorHandler);
         commands.lpush(key, messageArray).whenComplete(errorHandler);
         commands.ltrim(key, 0, historySize).whenComplete(errorHandler);
+        if(isVolatileChannel(channel)) {
+            commands.expire(key, historyExpireSeconds);
+        }
         commands.exec().whenComplete(errorHandler);
+    }
+
+    private boolean isVolatileChannel(String channel) {
+        return channel.startsWith("?");
     }
 
     @Override

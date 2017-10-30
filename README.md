@@ -102,3 +102,7 @@ slack.channels.incoming   |JsonObject           |               |Map Slack-Chann
 slack.channels.outgoing   |JsonObject           |               |Map Event-Server-Channel -> Slack-Channel
 slack.username            |String               |               |Username to use for sending messages to a slack incoming-webhook
 slack.token               |String               |               |Token that the event-server can use to authenticate a slack outgoing-webhook
+redis.enabled             |boolean              |false          |Enables Redis for storing history
+redis.host                |String               |redis          |Redis Hostname. Only relevant if redis.enabled=true
+redis.port                |int                  |6379           |Redis Port. Only relevant if redis.enabled=true
+redis.history.expire      |long                 |6*60*60        |Seconds since the last update until redis expires all history for a volatile channel (channel starting with ?)

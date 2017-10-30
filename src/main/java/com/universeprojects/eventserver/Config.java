@@ -25,6 +25,14 @@ public class Config {
         return Integer.parseInt(string);
     }
 
+    public static long getLong(String key, long defaultValue) {
+        final String string = Config.getString(key, null);
+        if(string == null) {
+            return defaultValue;
+        }
+        return Long.parseLong(string);
+    }
+
     public static boolean getBoolean(String key, boolean defaultValue) {
         final String string = Config.getString(key, null);
         if(string == null) {
