@@ -44,35 +44,20 @@ public class RedisHistoryService implements HistoryService {
         if (messages.isEmpty()) return;
         ChatMessage[] messageArray = messages.toArray(new ChatMessage[messages.size()]);
         final String key = generateChannelKey(channel);
-        try {
-            final RedisAsyncCommands<String, ChatMessage> commands =
-                connection.async();
-            BiConsumer<Object, Throwable> errorHandler = (result, ex) -> {
-                try {
-                    connection.close();
-                } catch (Exception closeEx) {
-                    log.error("Exception closing connection", closeEx);
-                }
-                if (ex != null) {
-                    log.error("Error storing history entries", ex);
-                }
-            };
+        final RedisAsyncCommands<String, ChatMessage> commands = connection.async();
+        BiConsumer<Object, Throwable> errorHandler = (result, ex) -> {
+            if(ex != null) {
+                log.error("Error storing history entries", ex);
+            }
+        };
 
-            commands.multi().whenComplete(errorHandler);
-            commands.lpush(key, messageArray).whenComplete(errorHandler);
-            commands.ltrim(key, 0, historySize).whenComplete(errorHandler);
-            if (isVolatileChannel(channel)) {
-                commands.expire(key, historyExpireSeconds);
-            }
-            commands.exec().whenComplete(errorHandler);
-        } catch (Exception ex) {
-            log.error("Error storing chat history", ex);
-            try {
-                connection.close();
-            } catch (Exception closeEx) {
-                log.error("Exception closing connection after failed storage", closeEx);
-            }
+        commands.multi().whenComplete(errorHandler);
+        commands.lpush(key, messageArray).whenComplete(errorHandler);
+        commands.ltrim(key, 0, historySize).whenComplete(errorHandler);
+        if(isVolatileChannel(channel)) {
+            commands.expire(key, historyExpireSeconds);
         }
+        commands.exec().whenComplete(errorHandler);
     }
 
     private boolean isVolatileChannel(String channel) {
