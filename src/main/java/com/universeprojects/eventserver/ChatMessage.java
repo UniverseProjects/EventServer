@@ -7,7 +7,7 @@ import java.util.List;
 
 public class ChatMessage {
     public final List<String> targetUserIds = new ArrayList<>();
-    public String senderId;
+    public String senderUserId;
     public String senderDisplayName;
     public String channel;
     public String text;

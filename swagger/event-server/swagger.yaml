@@ -49,7 +49,7 @@ paths:
                 items:
                   type: object
                   properties:
-                    senderId:
+                    senderUserId:
                       type: string
                     senderDisplayName:
                       type: string

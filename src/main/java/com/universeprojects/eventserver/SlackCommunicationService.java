@@ -154,7 +154,7 @@ public class SlackCommunicationService {
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.channel = channel;
             chatMessage.senderDisplayName = userName;
-            chatMessage.senderId = "slack:"+slackChannel;
+            chatMessage.senderUserId = "slack:"+slackChannel;
             chatMessage.text = text;
             chatMessage.timestamp = new BigDecimal(timestampStr).multiply(BigDecimal.valueOf(1000)).longValue();
             chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM_SLACK, true);

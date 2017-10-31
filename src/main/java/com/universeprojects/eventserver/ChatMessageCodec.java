@@ -20,7 +20,7 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
 
     public JsonObject toJson(ChatMessage chatMessage, boolean includeTargetUsers) {
         JsonObject json = new JsonObject();
-        json.put("senderUserId", chatMessage.senderId);
+        json.put("senderUserId", chatMessage.senderUserId);
         json.put("senderDisplayName", chatMessage.senderDisplayName);
         if(includeTargetUsers) {
             json.put("targetUserIds", new JsonArray(new ArrayList<>(chatMessage.targetUserIds)));
@@ -36,7 +36,7 @@ public class ChatMessageCodec implements MessageCodec<ChatMessage, ChatMessage> 
 
     public ChatMessage fromJson(JsonObject json) {
         ChatMessage chatMessage = new ChatMessage();
-        chatMessage.senderId = json.getString("senderId");
+        chatMessage.senderUserId = json.getString("senderUserId");
         chatMessage.senderDisplayName = json.getString("senderDisplayName");
 
         final JsonArray targetUserIds = json.getJsonArray("targetUserIds");
