@@ -13,7 +13,7 @@ public class SessionService {
 
     public User getUserForSession(String sessionId) {
         final User user = sessionIdToUserMap.get(sessionId);
-        if(user.isRemoved()) {
+        if(user != null && user.isRemoved()) {
             log.warn("Found removed user "+user.userId+" for session "+sessionId);
             sessionIdToUserMap.remove(sessionId);
             return null;
