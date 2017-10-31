@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.shareddata.Shareable;
 import io.vertx.ext.web.handler.sockjs.SockJSSocket;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -92,12 +93,15 @@ public class User implements Shareable {
     public Set<SockJSSocket> removeSession(String sessionId) {
         enforceLockHeld();
         final Set<SockJSSocket> socketSet = sessionIdToSocketMap.get(sessionId);
+        if(socketSet == null) {
+            return Collections.emptySet();
+        }
         sockets.removeAll(socketSet);
         return socketSet;
     }
 
     public void enforceLockHeld() {
-        if(!lock.isHeldByCurrentThread()) {
+        if(!isLockedByCurrentThread()) {
             throw new IllegalStateException("User lock needs to be held");
         }
     }

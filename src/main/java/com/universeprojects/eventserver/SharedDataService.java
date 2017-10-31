@@ -3,14 +3,11 @@ package com.universeprojects.eventserver;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.Lock;
 import io.vertx.core.shareddata.SharedData;
 
 public class SharedDataService {
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final SharedData sd;
 
     public SharedDataService(SharedData sd) {

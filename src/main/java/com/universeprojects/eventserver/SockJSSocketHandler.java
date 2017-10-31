@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.handler.sockjs.SockJSSocket;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,7 +110,7 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
         final User mapUser = verticle.userService.getOrCreateUser(authResponse.userId);
         if (sessionUser == null) {
             user = mapUser;
-            verticle.logConnectionEvent(() -> "User connected again with a new session: " + user);
+            verticle.logConnectionEvent(() -> "User connected with a new session: " + user);
         } else if (sessionUser != mapUser) {
             Set<SockJSSocket> sessionUserSockets = sessionUser.executeLockedReturning(su -> su.removeSession(sessionUser.userId));
             user = mapUser;
@@ -135,17 +136,35 @@ public class SockJSSocketHandler implements Handler<SockJSSocket> {
     private void onAuthError(SockJSSocket socket, String message) {
         ChatEnvelope envelope = ChatEnvelope.forError(message);
         send(socket, envelope);
-        socket.close();
+        closeSocket(socket);
+    }
+
+    private void closeSocket(SockJSSocket socket) {
+        if(socket == null) return;
+        try {
+            socket.close();
+        } catch (IllegalStateException ignored) {
+            //Socket already closed
+        }
     }
 
     private void setupSocket(SockJSSocket socket, User user, String token) {
         user.executeLocked(u -> u.registerSocket(socket));
         socket.handler((buffer) -> onSocketMessage(socket, user, token, buffer));
         socket.exceptionHandler((throwable) ->
-                log.error("Socket error for user " + user)
+            onSocketException(user, socket, throwable)
         );
         socket.endHandler((ignored) -> onDisconnect(socket, user));
         verticle.sessionService.putSession(socket, user);
+    }
+
+    private void onSocketException(User user, SockJSSocket socket, Throwable throwable) {
+        //noinspection StatementWithEmptyBody
+        if(throwable instanceof IOException && "Connection reset by peer".equals(throwable.getMessage())) {
+            //Disconnect
+        } else {
+            log.error("Socket error for socket "+socket.writeHandlerID()+" of user " + user, throwable);
+        }
     }
 
     private void onDisconnect(SockJSSocket socket, User user) {
