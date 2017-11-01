@@ -1,6 +1,8 @@
 package com.universeprojects.eventserver;
 
 
+import io.prometheus.client.hotspot.DefaultExports;
+import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
@@ -75,8 +77,11 @@ public class EventServerVerticle extends AbstractVerticle {
         final HttpServer server = vertx.createHttpServer();
         final Router router = Router.router(vertx);
 
+        DefaultExports.initialize();
+
         router.route("/healthcheck").handler(new HealthCheckHandler(this));
         router.route("/version").blockingHandler(new VersionHandler());
+        router.route("/metrics").handler(new MetricsHandler());
 
         router.route().handler(CookieHandler.create());
         router.route().handler(CorsHandler.create(corsOrigins));

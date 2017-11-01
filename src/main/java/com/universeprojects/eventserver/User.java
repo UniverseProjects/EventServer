@@ -1,5 +1,6 @@
 package com.universeprojects.eventserver;
 
+import io.prometheus.client.Gauge;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.shareddata.Shareable;
@@ -26,6 +27,8 @@ public class User implements Shareable {
     public MessageConsumer<ChatMessage> privateMessageConsumer;
     private boolean removed = false;
     private final ReentrantLock lock = new ReentrantLock();
+    private static final Gauge GAUGE_NUM_USERS = Gauge.build().name("users_total").help("Number of total users").register();
+    private static final Gauge GAUGE_USER_CONNECTIONS = Gauge.build().name("user_connections").help("Connections per user").labelNames("user").register();
 
     public boolean isRemoved() {
         return removed;
@@ -38,11 +41,14 @@ public class User implements Shareable {
         if(privateMessageConsumer != null) {
             privateMessageConsumer.unregister();
         }
+        GAUGE_NUM_USERS.dec();
+        GAUGE_USER_CONNECTIONS.remove(userId);
         removed = true;
     }
 
     public User(String userId) {
         this.userId = userId;
+        GAUGE_NUM_USERS.inc();
     }
 
     public void executeLocked(Consumer<User> consumer) {
@@ -78,6 +84,7 @@ public class User implements Shareable {
         }
         socketSet.add(socket);
         sockets.add(socket);
+        GAUGE_USER_CONNECTIONS.labels(userId).inc();
     }
 
     public void removeSocket(SockJSSocket socket) {
@@ -88,6 +95,7 @@ public class User implements Shareable {
             socketSet.remove(socket);
         }
         sockets.remove(socket);
+        GAUGE_USER_CONNECTIONS.labels(userId).dec();
     }
 
     public Set<SockJSSocket> removeSession(String sessionId) {

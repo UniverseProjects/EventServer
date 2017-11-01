@@ -1,5 +1,6 @@
 package com.universeprojects.eventserver;
 
+import io.prometheus.client.Gauge;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
@@ -15,6 +16,7 @@ public class ChannelService {
     private final Map<String, ChannelSubscription> channelSubscriptions = new TreeMap<>();
     private final ReentrantLock channelSubscriptionLock = new ReentrantLock();
     private final EventServerVerticle verticle;
+    private static final Gauge GAUGE_CHANNELS = Gauge.build().name("channels_total").help("Number of channels").register();
 
     public ChannelService(EventServerVerticle verticle) {
         this.verticle = verticle;
@@ -52,6 +54,7 @@ public class ChannelService {
                 }
                 subscription.users.add(user);
                 user.channelSubscriptions.put(channel, subscription);
+                GAUGE_CHANNELS.inc();
             }
         } finally {
             channelSubscriptionLock.unlock();
@@ -72,6 +75,7 @@ public class ChannelService {
         }
         subscription.messageConsumer.unregister();
         channelSubscriptions.remove(subscription.channel);
+        GAUGE_CHANNELS.dec();
     }
 
     //new userId - no user - create user-object - add channel-subscription / add user to channel-subscription

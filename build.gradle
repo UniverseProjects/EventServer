@@ -21,6 +21,10 @@ dependencies {
     compile "io.vertx:vertx-hazelcast:$version"
 
     compile 'io.lettuce:lettuce-core:5.0.0.RELEASE'
+
+    compile 'io.prometheus:simpleclient:0.1.0'
+    compile 'io.prometheus:simpleclient_hotspot:0.1.0'
+    compile 'io.prometheus:simpleclient_vertx:0.1.0'
 }
 
 run {
