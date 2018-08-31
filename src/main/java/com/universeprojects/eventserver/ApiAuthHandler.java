@@ -18,7 +18,7 @@ public class ApiAuthHandler implements Handler<RoutingContext> {
     private final CharSequence headerNameChar;
 
     public ApiAuthHandler() {
-        this.headerName = Config.getString(CONFIG_HEADER_NAME, "api_key");
+        this.headerName = Config.getString(CONFIG_HEADER_NAME, "api-key");
         this.headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
         this.headerNameChar = headerName != null ? HttpHeaders.createOptimized(headerName) : null;
 

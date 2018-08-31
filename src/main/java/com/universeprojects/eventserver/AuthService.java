@@ -37,7 +37,7 @@ public class AuthService {
         int port = Config.getInt(CONFIG_REMOTE_PORT, 8886);
         boolean ssl = Config.getBoolean(CONFIG_REMOTE_SSL, false);
         authEndpoint = Config.getString(CONFIG_AUTH_ENDPOINT, "/chatAuth");
-        headerName = Config.getString(CONFIG_HEADER_NAME, "api_key");
+        headerName = Config.getString(CONFIG_HEADER_NAME, "api-key");
         headerValue = Config.getString(CONFIG_HEADER_VALUE, null);
 
         WebClientOptions options = new WebClientOptions().

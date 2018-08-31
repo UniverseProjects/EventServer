@@ -44,5 +44,5 @@ paths:
 securityDefinitions:
   api_auth:
     type: apiKey
-    name: api_key
+    name: api-key
     in: header

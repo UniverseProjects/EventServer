@@ -88,13 +88,13 @@ cors.origins              |String               |*              |CORS header ori
 log.connections           |boolean              |false          |Activate connection-logging. This can produce a lot of log-entries
 log.storage               |boolean              |false          |Activate storage-logging. This can produce a lot of very long log-entries
 channel.history.size      |int                  |200            |Amount of entries to keep per channel. These entries are sent to a client on connection.
-api.header.name           |String               |api_key        |Header-Name for the API-Key for the /send endpoint
+api.header.name           |String               |api-key        |Header-Name for the API-Key for the /send endpoint
 api.header.value          |String               |               |Heaver-Value for the API-Key for the /send endpoint
 remote.host               |String               |localhost      |Hostname of the application-server with a chatAuth endpoint
 remote.port               |int                  |8886           |Port of the application-server
 remote.ssl                |boolean              |false          |If true the event-server will use HTTPS to connect to the application-server
 remote.auth.endpoint      |String               |/chatAuth      |Name of the chatAuth-endpoint
-remote.api.header.name    |String               |api_key        |Header-Name for the API-Key for the chatAuth endpoint on the application-server
+remote.api.header.name    |String               |api-key        |Header-Name for the API-Key for the chatAuth endpoint on the application-server
 remote.api.header.value   |String               |               |Header-Value for the API-Key for the chatAuth endpoint on the application-server
 slack.enabled             |boolean              |false          |Enables slack integration
 slack.url                 |String               |               |URL to a slack incoming-webhook
