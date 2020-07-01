@@ -6,3 +6,4 @@
 *.iml
 
 .vertx
+.java-version

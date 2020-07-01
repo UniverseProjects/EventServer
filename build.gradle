@@ -25,10 +25,16 @@ dependencies {
     compile 'io.prometheus:simpleclient:0.1.0'
     compile 'io.prometheus:simpleclient_hotspot:0.1.0'
     compile 'io.prometheus:simpleclient_vertx:0.1.0'
+
+    compile 'com.discord4j:discord4j-core:3.1.0.RC2'
 }
 
 run {
     environment("slack.channels.outgoing", '{"GLOBAL":"#upchat","slack.servers":"#servers"}')
+    environment("server.mode", "TEST")
+    environment("discord.enabled", "true")
+    environment("discord.token", "NDk2MDkyNDcxNTUwNTQxODM0.Xvq_IQ.6FcvU-3lMLwGcxm1o8BpLr_CaRA")
+    environment("discord.channels.incoming", '{"727383179484463105":"GLOBAL"}')
     systemProperties System.getProperties()
 }
 

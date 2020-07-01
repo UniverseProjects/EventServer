@@ -49,6 +49,7 @@ public class EventServerVerticle extends AbstractVerticle {
     public SharedDataService sharedDataService;
     public ServerMode serverMode;
     public SlackCommunicationService slackCommunicationService;
+    public DiscordCommunicationService discordCommunicationService;
     public HistoryService historyService;
     public ChannelService channelService;
     public UserService userService;
@@ -119,6 +120,9 @@ public class EventServerVerticle extends AbstractVerticle {
         slackCommunicationService = new SlackCommunicationService(this);
         slackCommunicationService.activate();
         slackCommunicationService.setupRoute(router);
+
+        discordCommunicationService = new DiscordCommunicationService(this);
+        discordCommunicationService.activate();
 
         server.requestHandler(router::accept).listen(port, "0.0.0.0");
         log.info("Server started up at http://localhost:" + port);
