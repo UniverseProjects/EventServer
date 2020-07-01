@@ -31,10 +31,6 @@ dependencies {
 
 run {
     environment("slack.channels.outgoing", '{"GLOBAL":"#upchat","slack.servers":"#servers"}')
-    environment("server.mode", "TEST")
-    environment("discord.enabled", "true")
-    environment("discord.token", "NDk2MDkyNDcxNTUwNTQxODM0.Xvq_IQ.6FcvU-3lMLwGcxm1o8BpLr_CaRA")
-    environment("discord.channels.incoming", '{"727383179484463105":"GLOBAL"}')
     systemProperties System.getProperties()
 }
 
