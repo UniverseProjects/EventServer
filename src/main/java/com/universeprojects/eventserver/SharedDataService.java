@@ -18,6 +18,10 @@ public class SharedDataService {
         sd.getLockWithTimeout("slack", 10 * 1000, handler);
     }
 
+    public void getCommunicationsLock(String name, Handler<AsyncResult<Lock>> handler) {
+        sd.getLockWithTimeout(name, 10 * 1000, handler);
+    }
+
     public void getChannelLock(String key, Handler<AsyncResult<Lock>> handler) {
         sd.getLockWithTimeout("messages:"+key, 1000, handler);
     }
