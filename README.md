@@ -106,3 +106,7 @@ redis.enabled             |boolean              |false          |Enables Redis f
 redis.host                |String               |redis          |Redis Hostname. Only relevant if redis.enabled=true
 redis.port                |int                  |6379           |Redis Port. Only relevant if redis.enabled=true
 redis.history.expire      |long                 |24*60*60       |Seconds since the last update until redis expires all history for a volatile channel (channel starting with ?)
+discord.enabled           |boolean              |false          |Enables Discord integration
+discord.token             |String               |               |The Discord bot token needed to authenticate
+discord.channels.incoming |JsonObject           |               |Map Discord-Channel-Id -> EventServer-Channel.  Example: {"727383179484463105":"GLOBAL"}
+discord.channels.outgoing |JsonObject           |               |Map EventServer-Channel -> Discord-Channel-Id
