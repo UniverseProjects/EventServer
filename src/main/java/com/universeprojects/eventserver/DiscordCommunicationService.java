@@ -41,6 +41,14 @@ public class DiscordCommunicationService extends CommunicationService {
         return token != null && token.length() > 0;
     }
 
+    private String getChannelName(Channel channel, String defaultValue) {
+        if (channel instanceof GuildChannel) {
+            return ((GuildChannel)channel).getName();
+        } else {
+            return defaultValue;
+        }
+    }
+
     void activateIncoming() {
         DiscordClient client = DiscordClient.create(token);
         gateway = client.login().block();
@@ -49,12 +57,13 @@ public class DiscordCommunicationService extends CommunicationService {
             final Message message = event.getMessage();
             final MessageChannel channel = message.getChannel().block();
             final String discordChannel = Long.toString(channel.getId().asLong());
+            final String discordChannelName = getChannelName(channel, "[Unknown]");
             final Optional<User> author = message.getAuthor();
             final boolean isBot = author.map(User::isBot).orElse(false);
             if (incomingChannelMap.containsKey(discordChannel) && !isBot) {
                 final String insideChannel = incomingChannelMap.get(discordChannel);
                 final String username = author.map(User::getUsername).orElse("unknown");
-                sendInsideMessage(insideChannel, discordChannel, username, contentWithMentions(message), message.getTimestamp().getEpochSecond());
+                sendInsideMessage(insideChannel, discordChannelName, username, contentWithMentions(message), message.getTimestamp().getEpochSecond());
             }
         };
 
@@ -83,17 +92,8 @@ public class DiscordCommunicationService extends CommunicationService {
 
         while (regexMatcher.find()) {
             final String channelId = regexMatcher.group(1);
-            final String channelName;
-
             Channel channel = gateway.getChannelById(Snowflake.of(Long.parseLong(channelId))).block();
-
-            if (channel instanceof GuildChannel) {
-                channelName = ((GuildChannel)channel).getName();
-            } else {
-                channelName = channel.getMention();
-            }
-
-            channelMap.put(channelId, channelName);
+            channelMap.put(channelId, getChannelName(channel, channel.getMention()));
         }
 
         return Arrays
