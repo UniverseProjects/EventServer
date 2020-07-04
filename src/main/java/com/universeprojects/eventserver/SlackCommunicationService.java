@@ -143,4 +143,15 @@ class SlackCommunicationService extends CommunicationService{
         });
     }
 
+    @Override
+    public String toString() {
+        return "SlackCommunicationService{" +
+                "slackEnabled=" + enabled +
+                ", slackUrl='" + slackUrl + '\'' +
+                ", slackUsername='" + slackUsername + '\'' +
+                ", slackToken='" + slackToken + '\'' +
+                ", slackOutgoingChannelMap=" + outgoingChannelMap +
+                ", slackIncomingChannelMap=" + incomingChannelMap +
+                '}';
+    }
 }

@@ -67,7 +67,7 @@ public class DiscordCommunicationService extends CommunicationService {
             }
         };
 
-        final Consumer<MessageUpdateEvent> updateMessage = event -> verticle.logConnectionEvent(() -> "Received an edited message from discord channel " + Long.toString(event.getChannelId().asLong()));
+        final Consumer<MessageUpdateEvent> updateMessage = event -> verticle.logConnectionEvent(() -> "Received an edited message from discord channel " + event.getChannelId().asLong());
 
         gateway.on(MessageCreateEvent.class).subscribe(handleMessage);
         gateway.on(MessageUpdateEvent.class).subscribe(updateMessage);
@@ -78,12 +78,12 @@ public class DiscordCommunicationService extends CommunicationService {
         final String content = message.getContent();
         final String contentWithRoles = message
                 .getRoleMentions()
-                .reduce(content, (msg, role) -> msg.replaceAll("<@&?" + Long.toString(role.getId().asLong()) + ">", "@" + role.getName()))
+                .reduce(content, (msg, role) -> msg.replaceAll("<@&?" + role.getId().asLong() + ">", "@" + role.getName()))
                 .block();
 
         final String contentWithUsers = message
                 .getUserMentions()
-                .reduce(contentWithRoles, (msg, role) -> msg.replaceAll("<@!?" + Long.toString(role.getId().asLong()) + ">", "@" + role.getUsername()))
+                .reduce(contentWithRoles, (msg, role) -> msg.replaceAll("<@!?" + role.getId().asLong() + ">", "@" + role.getUsername()))
                 .block();
 
         Pattern regex = Pattern.compile("<#(\\d+)>");

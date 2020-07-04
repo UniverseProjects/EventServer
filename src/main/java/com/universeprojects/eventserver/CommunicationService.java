@@ -28,7 +28,7 @@ public abstract class CommunicationService {
 
     protected final EventServerVerticle verticle;
     protected final String serviceName;
-    private final boolean enabled;
+    protected final boolean enabled;
     protected final Map<String, String> outgoingChannelMap;
     protected final Map<String, String> incomingChannelMap;
     private final Object timerLock = new Object();
