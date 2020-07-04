@@ -117,9 +117,8 @@ public class EventServerVerticle extends AbstractVerticle {
         router.route("/send").handler(new IncomingMessageHandler(this));
         router.route("/updateUsers").handler(new UpdateUsersHandler(this));
 
-        slackCommunicationService = new SlackCommunicationService(this);
+        slackCommunicationService = new SlackCommunicationService(this, router);
         slackCommunicationService.activate();
-        slackCommunicationService.setupRoute(router);
 
         discordCommunicationService = new DiscordCommunicationService(this);
         discordCommunicationService.activate();

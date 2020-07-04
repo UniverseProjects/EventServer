@@ -24,17 +24,17 @@ public abstract class CommunicationService {
     private static final String DATA_AUTHOR_COLOR = "AuthorColor";
     private static final String DATA_ADDITIONAL_FIELDS = "AdditionalFields";
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final EventServerVerticle verticle;
     protected final String serviceName;
-    private final boolean enabled;
+    protected final boolean enabled;
     protected final Map<String, String> outgoingChannelMap;
     protected final Map<String, String> incomingChannelMap;
     private final Object timerLock = new Object();
     private Lock instanceLock;
     private Long timerId;
-    private final boolean processHtml;
+    protected final boolean processHtml;
 
     private String prefixConfig(String config) {
         return serviceName.toLowerCase() + "." + config;
@@ -177,5 +177,11 @@ public abstract class CommunicationService {
 
     }
 
-    protected abstract void sendOutsideMessage(String sourceChannel, String remoteChannel, String text, String fallbackText, String author, String authorLink, String authorColor, JsonArray additionalFields);
+    abstract void sendOutsideMessage(String sourceChannel, String remoteChannel, String text, String fallbackText, String author, String authorLink, String authorColor, JsonArray additionalFields);
+
+    static void putIfNotNull(JsonObject object, String key, String data) {
+        if(data != null) {
+            object.put(key, data);
+        }
+    }
 }
