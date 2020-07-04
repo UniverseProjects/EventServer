@@ -84,6 +84,7 @@ public abstract class CommunicationService {
         chatMessage.text = text;
         chatMessage.timestamp = timestamp;
         chatMessage.additionalData = new JsonObject().put(DATA_MARKER_FROM + serviceName , true);
+        EscapingService.INSTANCE.escapeHtml(chatMessage, false);
         verticle.logConnectionEvent(() -> "Publishing message from remote channel "+outsideChannel+" to channel "+insideChannel+": "+chatMessage);
         verticle.eventBus.publish(address, chatMessage);
         verticle.storeChatHistory(insideChannel, Collections.singletonList(chatMessage));
@@ -168,17 +169,13 @@ public abstract class CommunicationService {
             additionalFields = additionalData.getJsonArray(serviceName + DATA_ADDITIONAL_FIELDS);
         }
 
-        String text = processText(chatMessage.text, processHtml);
-        String fallbackText = processText(chatMessage.text, false);
+        String text = chatMessage.text;
+        String fallbackText = chatMessage.text; //TODO strip markdown
 
         sendOutsideMessage(channel, remoteChannel, text, fallbackText, chatMessage.senderDisplayName, authorLink, authorColor, additionalFields);
 
 
     }
 
-    abstract void sendOutsideMessage(String sourceChannel, String remoteChannel, String text, String fallbackText, String author, String authorLink, String authorColor, JsonArray additionalFields);
-
-    private String processText(final String str, final boolean translateHtml) {
-        return EscapingService.INSTANCE.escapeHtml(str, translateHtml);
-    }
+    protected abstract void sendOutsideMessage(String sourceChannel, String remoteChannel, String text, String fallbackText, String author, String authorLink, String authorColor, JsonArray additionalFields);
 }
