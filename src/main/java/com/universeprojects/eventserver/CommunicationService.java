@@ -26,7 +26,7 @@ public abstract class CommunicationService {
     private static final String DATA_AUTHOR_COLOR = "AuthorColor";
     private static final String DATA_ADDITIONAL_FIELDS = "AdditionalFields";
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final EventServerVerticle verticle;
     protected final String serviceName;
@@ -36,7 +36,7 @@ public abstract class CommunicationService {
     private final Object timerLock = new Object();
     private Lock instanceLock;
     private Long timerId;
-    private boolean processHtml;
+    protected boolean processHtml;
 
     private String prefixConfig(String config) {
         return serviceName.toLowerCase() + "." + config;
@@ -239,7 +239,7 @@ public abstract class CommunicationService {
         return text;
     }
 
-    private String escapeMessage(String str) {
+    protected String escapeMessage(String str) {
         return str.
             replaceAll("&", "%amp;").
             replaceAll("<", "&lt;").
