@@ -64,11 +64,6 @@ public class DiscordCommunicationService extends CommunicationService {
         gateway.on(MessageUpdateEvent.class).subscribe(updateMessage);
     }
 
-    @Override
-    protected String escapeMessage(String message) {
-        return message;
-    }
-
     private String contentWithMentions(Message message) {
 
         final String content = message.getContent();

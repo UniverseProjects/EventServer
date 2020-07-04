@@ -181,4 +181,10 @@ public abstract class CommunicationService {
     private String processText(final String str, final boolean translateHtml) {
         return EscapingService.INSTANCE.escapeHtml(str, translateHtml);
     }
+
+    protected static void putIfNotNull(JsonObject object, String key, String data) {
+        if(data != null) {
+            object.put(key, data);
+        }
+    }
 }
