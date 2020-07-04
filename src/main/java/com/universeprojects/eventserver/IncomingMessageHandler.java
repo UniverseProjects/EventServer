@@ -44,6 +44,7 @@ public class IncomingMessageHandler implements Handler<RoutingContext> {
         for(Object messageObj : messages) {
             JsonObject messageJson = (JsonObject) messageObj;
             ChatMessage chatMessage = ChatMessageCodec.INSTANCE.fromJson(messageJson);
+            EscapingService.INSTANCE.escapeHtml(chatMessage, false);
             if(chatMessage.timestamp == null) {
                 chatMessage.timestamp = System.currentTimeMillis();
             }

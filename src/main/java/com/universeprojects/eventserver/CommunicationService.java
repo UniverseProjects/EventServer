@@ -11,8 +11,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public abstract class CommunicationService {
 
@@ -36,7 +34,7 @@ public abstract class CommunicationService {
     private final Object timerLock = new Object();
     private Lock instanceLock;
     private Long timerId;
-    private boolean processHtml;
+    private final boolean processHtml;
 
     private String prefixConfig(String config) {
         return serviceName.toLowerCase() + "." + config;
@@ -180,75 +178,7 @@ public abstract class CommunicationService {
 
     abstract void sendOutsideMessage(String sourceChannel, String remoteChannel, String text, String fallbackText, String author, String authorLink, String authorColor, JsonArray additionalFields);
 
-    private final Pattern linkPattern = Pattern.compile("<\\s*a\\s+href=\"([^\"]*)\"\\s*>([^<]+)<\\/a\\s*>");
-    private final Pattern boldPattern = Pattern.compile("<\\s*b\\s*>([^<]+)<\\/b\\s*>");
-    private final Pattern strongPattern = Pattern.compile("<\\s*strong\\s*>([^<]+)<\\/strong\\s*>");
-    private final Pattern italicPattern = Pattern.compile("<\\s*i\\s*>([^<]+)<\\/i\\s*>");
-    private final Pattern emPattern = Pattern.compile("<\\s*em\\s*>([^<]+)<\\/em\\s*>");
-
     private String processText(final String str, final boolean translateHtml) {
-        String text = str;
-        final Matcher linkMatcher = linkPattern.matcher(text);
-        if(translateHtml) {
-            text = linkMatcher.replaceAll("!!l!!$1|$2!!g!!");
-        } else {
-            text = linkMatcher.replaceAll("$2");
-        }
-
-        final Matcher boldMatcher = boldPattern.matcher(text);
-        if(translateHtml) {
-            text = boldMatcher.replaceAll("*$1*");
-        } else {
-            text = boldMatcher.replaceAll("$1");
-        }
-
-        final Matcher strongMatcher = strongPattern.matcher(text);
-        if(translateHtml) {
-            text = strongMatcher.replaceAll("*$1*");
-        } else {
-            text = strongMatcher.replaceAll("$1");
-        }
-
-        final Matcher italicMatcher = italicPattern.matcher(text);
-        if(translateHtml) {
-            text = italicMatcher.replaceAll("_$1_");
-        } else {
-            text = italicMatcher.replaceAll("$1");
-        }
-
-        final Matcher emMatcher = emPattern.matcher(text);
-        if(translateHtml) {
-            text = emMatcher.replaceAll("_$1_");
-        } else {
-            text = emMatcher.replaceAll("$1");
-        }
-
-        if(translateHtml) {
-            text = text.replaceAll("<\\s*br\\s*/?>", "\\n");
-        } else {
-            text = text.replaceAll("<\\s*br\\s*/?>", "");
-        }
-
-        text = escapeMessage(text);
-
-        if(processHtml) {
-            text = text.replaceAll("!!l!!", "<");
-            text = text.replaceAll("!!g!!", ">");
-        }
-
-        return text;
-    }
-
-    private String escapeMessage(String str) {
-        return str.
-            replaceAll("&", "%amp;").
-            replaceAll("<", "&lt;").
-            replaceAll(">","&gt;");
-    }
-
-    protected static void putIfNotNull(JsonObject object, String key, String data) {
-        if(data != null) {
-            object.put(key, data);
-        }
+        return EscapingService.INSTANCE.escapeHtml(str, translateHtml);
     }
 }
