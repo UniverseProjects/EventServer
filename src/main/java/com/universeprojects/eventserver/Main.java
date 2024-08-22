@@ -15,10 +15,10 @@ import java.net.SocketException;
 import java.util.Enumeration;
 
 public class Main {
-    public static final String CONFIG_HAZELCAST_GROUP_NAME = "hazelcast.group.name";
-    public static final String CONFIG_HAZELCAST_GROUP_PASSWORD = "hazelcast.group.password";
-    public static final String CONFIG_HAZELCAST_MANAGEMENT_URL = "hazelcast.management.url";
-    public static final String CONFIG_CLUSTER_HOST = "cluster.host";
+    public static final String CONFIG_HAZELCAST_GROUP_NAME = "hazelcast_group_name";
+    public static final String CONFIG_HAZELCAST_GROUP_PASSWORD = "hazelcast_group_password";
+    public static final String CONFIG_HAZELCAST_MANAGEMENT_URL = "hazelcast_management_url";
+    public static final String CONFIG_CLUSTER_HOST = "cluster_host";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 

@@ -10,8 +10,8 @@ public class ApiAuthHandler implements Handler<RoutingContext> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String CONFIG_HEADER_NAME = "api.header.name";
-    public static final String CONFIG_HEADER_VALUE = "api.header.value";
+    public static final String CONFIG_HEADER_NAME = "api_header_name";
+    public static final String CONFIG_HEADER_VALUE = "api_header_value";
 
     private final String headerName;
     private final String headerValue;

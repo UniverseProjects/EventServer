@@ -27,13 +27,13 @@ public class EventServerVerticle extends AbstractVerticle {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String CONFIG_MODE = "server.mode";
-    public static final String CONFIG_PORT = "server.port";
-    public static final String CONFIG_CORS_ORIGINS = "cors.origins";
-    public static final String CONFIG_LOG_CONNECTIONS = "log.connections";
-    public static final String CONFIG_LOG_STORAGE = "log.storage";
-    public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel.history.size";
-    public static final String CONFIG_REDIS_ENABLED = "redis.enabled";
+    public static final String CONFIG_MODE = "server_mode";
+    public static final String CONFIG_PORT = "server_port";
+    public static final String CONFIG_CORS_ORIGINS = "cors_origins";
+    public static final String CONFIG_LOG_CONNECTIONS = "log_connections";
+    public static final String CONFIG_LOG_STORAGE = "log_storage";
+    public static final String CONFIG_CHANNEL_HISTORY_SIZE = "channel_history_size";
+    public static final String CONFIG_REDIS_ENABLED = "redis_enabled";
 
     private static final int DEFAULT_HISTORY_SIZE = 100;
 

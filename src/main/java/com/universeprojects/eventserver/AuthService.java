@@ -16,12 +16,12 @@ import java.io.IOException;
 public class AuthService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String CONFIG_REMOTE_HOST = "remote.host";
-    public static final String CONFIG_REMOTE_PORT = "remote.port";
-    public static final String CONFIG_REMOTE_SSL = "remote.ssl";
-    public static final String CONFIG_AUTH_ENDPOINT = "remote.auth.endpoint";
-    public static final String CONFIG_HEADER_NAME = "remote.api.header.name";
-    public static final String CONFIG_HEADER_VALUE = "remote.api.header.value";
+    public static final String CONFIG_REMOTE_HOST = "remote_host";
+    public static final String CONFIG_REMOTE_PORT = "remote_port";
+    public static final String CONFIG_REMOTE_SSL = "remote_ssl";
+    public static final String CONFIG_AUTH_ENDPOINT = "remote_auth_endpoint";
+    public static final String CONFIG_HEADER_NAME = "remote_api_header_name";
+    public static final String CONFIG_HEADER_VALUE = "remote_api_header_value";
     public static final int MAX_ATTEMPTS = 5;
 
     @SuppressWarnings({"FieldCanBeLocal", "unused"})

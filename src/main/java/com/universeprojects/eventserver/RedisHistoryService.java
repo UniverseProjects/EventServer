@@ -19,9 +19,9 @@ public class RedisHistoryService implements HistoryService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String CONFIG_REDIS_HOST = "redis.host";
-    public static final String CONFIG_REDIS_PORT = "redis.port";
-    public static final String CONFIG_HISTORY_EXPIRE = "redis.history.expire";
+    public static final String CONFIG_REDIS_HOST = "redis_host";
+    public static final String CONFIG_REDIS_PORT = "redis_port";
+    public static final String CONFIG_HISTORY_EXPIRE = "redis_history_expire";
 
 
     private final RedisClient redisClient;

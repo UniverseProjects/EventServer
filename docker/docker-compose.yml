@@ -1,0 +1,45 @@
+services:
+  eventserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5502:6969"
+    links:
+      - redis
+    networks:
+       - voidspace
+       - initium_default
+    environment:
+      hazelcast_group_name: initium
+      log_connections: "true"
+      redis_enabled: "true"
+      redis_host: redis
+      remote_auth_endpoint: /ServletChatAuth
+      remote_host: initium-v2
+      remote_port: "80"
+      remote_ssl: "false"
+      server_mode: PROD
+      server_port: "6969"
+      slack.channels.incoming: '{"gamechat-global": "GlobalChat"}'
+      slack.channels.outgoing: '{"GlobalChat": "gamechat-global"}'
+      slack.enabled: "false"
+      slack.process.html: "true"
+      slack.username: gamechat
+      
+      api_header_value: 'U24N281YP6J0E1JWP3O19EXNX5WVBB'
+      remote_api_header_value: 'F4AMS4JM7MGBO7T0P3HZ2HZ8ZHHFA1'
+      slack.token: '62Vexn1tlmGPoQf0sVwbUnhR'
+      slack.url: 'https://hooks.slack.com/services/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'
+
+  redis:
+    image: redis:4.0-alpine
+    restart: unless-stopped
+    networks:
+       - voidspace
+    
+networks:
+  voidspace: {}
+  initium_default:
+    external: true
