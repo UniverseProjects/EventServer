@@ -67,10 +67,11 @@ public class EscapingService {
     }
 
     public String escapeAllHtml(String message) {
-        return message.
-            replaceAll("&", "%amp;").
-            replaceAll("<", "&lt;").
-            replaceAll(">","&gt;");
+        return message;
+        // return message.
+        //     replaceAll("&", "%amp;").
+        //     replaceAll("<", "&lt;").
+        //     replaceAll(">","&gt;");
     }
 
     public ChatMessage escapeHtml(ChatMessage chatMessage, boolean translateToMarkdown) {
